@@ -2,6 +2,7 @@
 #define MAGIC 53
 #define VERSION 0
 #define MBZ 0
+#define HEADER_SIZE 4
 
 /* taille TLV */
 #define TYPE_SIZE 1

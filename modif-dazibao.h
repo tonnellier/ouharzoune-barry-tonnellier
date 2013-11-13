@@ -1,4 +1,3 @@
-#define HEADER_SIZE 4
 #define HEADER_ERROR -53
 #define BUF_SIZE 4096
 

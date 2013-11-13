@@ -8,6 +8,32 @@
 #include "norme.h"
 #include "modif-dazibao.h"
 
+int verifie_entete(char * dazibao){
+  char head[HEADER_SIZE];
+  int fd, rc;
+
+  fd = open(dazibao, O_RDONLY);
+  if(fd < 0){
+    perror("open:verifie_entete");
+    return errno;
+  }
+
+  /* Lecture de l'entete */
+  rc =  read(fd, head, HEADER_SIZE);
+  if(rc < 0){
+    perror("read:verifie_entete");
+    return errno;
+  }else{
+    if(rc != HEADER_SIZE || head[0] != MAGIC || head[1] != VERSION)
+      return HEADER_ERROR;
+    else
+      printf("L'entete de \"%s\" est correct !\n", dazibao);
+  }
+
+  close(fd);
+  return 0;
+}
+
 /* A FINIR */
 
 int lire_entete_TLV(int fd){
@@ -51,6 +77,8 @@ int lire_entete_TLV(int fd){
   return rc;
 }
 
+
+
 int affiche_dazibao(char * dazibao){
 
   char head[HEADER_SIZE];
@@ -63,23 +91,10 @@ int affiche_dazibao(char * dazibao){
 
   /* Ouverture du fichier  */
   fd = open(dazibao, O_RDONLY);
-  if(fd < 1){
+  if(fd < 0){
     perror("open");
     return errno;
-  }
-
-
-  /* Lecture de l'entete */
-  rc =  read(fd, head, HEADER_SIZE);
-  if(rc < 0){
-    perror("read");
-    return errno;
-  }else{
-    if(rc != HEADER_SIZE || head[0] != MAGIC || head[1] != VERSION)
-      return HEADER_ERROR;
-    else
-      printf("L'entete est correct !\n");
-  }
+  }  
 
   /* Lecture et affichage du fichier */
   while(1){
@@ -97,3 +112,4 @@ int affiche_dazibao(char * dazibao){
   close(fd);
   return 0;
 }
+
