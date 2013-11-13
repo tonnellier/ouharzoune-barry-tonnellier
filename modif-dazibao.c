@@ -11,6 +11,9 @@
 int verifie_entete(char * dazibao){
   char head[HEADER_SIZE];
   int fd, rc;
+  /* TODO
+    ajouter la pose d'un verrou flock    
+   */
 
   fd = open(dazibao, O_RDONLY);
   if(fd < 0){
