@@ -8,6 +8,11 @@
 #include "norme.h"
 #include "modif-dazibao.h"
 
+#define HEADER_ERROR -53
+#define ERROR_READ_TLV -2
+#define EOF_DAZI -1
+
+/* TEST OK */
 int verifie_entete(char * dazibao){
   char head[HEADER_SIZE];
   int fd, rc;
@@ -37,54 +42,78 @@ int verifie_entete(char * dazibao){
   return 0;
 }
 
+
+int lire_length(int fd){
+  int rc, length = 0;
+  int i;
+  char buflen[1024] = {0};
+  rc = read(fd, buflen, 1024);
+  if(rc < 0){
+    perror("read:lire_length");
+    return ERROR_READ_TLV;
+  }
+  else{    
+    if(rc == 1024){
+
+      for(i=0; i < rc;i++){
+	if (i%16==0) printf("\n");
+	printf("%d ",buflen[i]);
+	
+      }
+      length = buflen[0];
+      length = length << 8;
+      length += buflen[1];
+      length = length << 8;
+      length += buflen[2];
+    }
+    else{
+      printf("read:lire_length(tous les octets n'ont pas etes lus)\n");
+      return ERROR_READ_TLV;
+    }
+  }
+  return length;
+}
+
 /* A FINIR */
 
-int lire_entete_TLV(int fd){
-  int rc, length;
-  char headTLV[TYPE_SIZE+LENGTH_SIZE];
+int lire_tlv(int fd){
+  int rc;
+  char typetlv;
+  
+  rc = read(fd, &typetlv, TYPE_SIZE);
 
-  rc = read(fd, headTLV, TYPE_SIZE);
   if(rc < 0){
     perror("read");
-    return errno;
-  }else{
-    if(rc == TYPE_SIZE){
-      if(headTLV[0] == TYPE_PAD1){	
-	return rc;
-      }
-      if(headTLV[0] == TYPE_PADN){
-	//lseek()
-	return rc;
-      }
-      if(headTLV[0] == TYPE_TEXT){
-	
-	return rc;
-      }
-      if(headTLV[0] == TYPE_PNG){
-	return rc;
-      }
-      if(headTLV[0] == TYPE_JPEG){
-	return rc;
-      }
-      if(headTLV[0] == TYPE_COMPOUND){
-	return rc;
-      }
-      if(headTLV[0] == TYPE_DATED){
-	return rc;
-      }
-    }else{
-      printf("\nfin de la lecture !\n");
-    }
-    
+    return ERROR_READ_TLV;
   }
-  return rc;
+
+  else{
+    if(rc == TYPE_SIZE){
+      switch(typetlv){
+      case 0: printf("TLV type: Pad1\n"); 
+	break;
+      case 1: printf("TLV type: PadN\n"); 
+	break;
+      case 2: break;
+      case 3: break;
+      case 4: break;
+      case 5: break;
+      case 6: break;
+      default: printf("TLV inconnu: type:%d\n", typetlv);
+      }
+      return typetlv;
+    }
+  }
+
+  printf("\nlire_tlv(int):fin lecture\n");
+
+  return EOF_DAZI;
 }
 
 
 
 int affiche_dazibao(char * dazibao){
 
-  char head[HEADER_SIZE];
   int fd, rc;
   
   /* TODO
@@ -101,7 +130,8 @@ int affiche_dazibao(char * dazibao){
 
   /* Lecture et affichage du fichier */
   while(1){
-    rc = lire_entete_TLV(fd);
+
+    rc = lire_tlv(fd);
     if(rc < 0){
       printf("Erreur d'affichage !\n");
     }else{
@@ -110,6 +140,7 @@ int affiche_dazibao(char * dazibao){
 	break;
       }
     }
+
   }
   
   close(fd);
