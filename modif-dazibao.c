@@ -11,6 +11,7 @@
 #define HEADER_ERROR -53
 #define ERROR_READ_TLV -2
 #define EOF_DAZI -1
+#define BUF_LEN 64
 
 /* TEST OK */
 int verifie_entete(char * dazibao){
@@ -42,24 +43,49 @@ int verifie_entete(char * dazibao){
   return 0;
 }
 
+/* TODO
+ */
+int affiche_texte(int fd, int length){
+    char buf[BUF_LEN];
+    int lus;
+    int ecrits;
+    while(1){
+      printf("length:%d\n", length);
+	if(length < BUF_LEN) 
+	    lus = read(fd, buf, length);
+	else
+	    lus = read(fd, buf, BUF_LEN);
+	printf("lus:%d\n", lus);
+	if (lus < 0){
+	    perror("read:affiche_texte(int,int)");
+	    return ERROR_READ_TLV;
+	}
+	else{
+	    if(lus == 0){
+		printf("\n");
+		break;
+	    }
+	    else{
+	      printf("%s\n", buf);
+	      printf("\n");
+	    }
+	}
+	length -= lus;
+    }
+    return 0;
+}
 
-int lire_length(int fd){
+// TEST OK
+int recupere_length(int fd){
   int rc, length = 0;
-  int i;
-  char buflen[1024] = {0};
-  rc = read(fd, buflen, 1024);
+  char buflen[LENGTH_SIZE];
+  rc = read(fd, buflen, LENGTH_SIZE);
   if(rc < 0){
     perror("read:lire_length");
     return ERROR_READ_TLV;
   }
-  else{    
-    if(rc == 1024){
-
-      for(i=0; i < rc;i++){
-	if (i%16==0) printf("\n");
-	printf("%d ",buflen[i]);
-	
-      }
+  else{
+    if(rc == LENGTH_SIZE){
       length = buflen[0];
       length = length << 8;
       length += buflen[1];
@@ -74,11 +100,11 @@ int lire_length(int fd){
   return length;
 }
 
-/* A FINIR */
-
-int lire_tlv(int fd){
+/* TODO */
+int affiche_tlv(int fd){
   int rc;
   char typetlv;
+  int length = -1;
   
   rc = read(fd, &typetlv, TYPE_SIZE);
 
@@ -86,32 +112,41 @@ int lire_tlv(int fd){
     perror("read");
     return ERROR_READ_TLV;
   }
-
-  else{
-    if(rc == TYPE_SIZE){
-      switch(typetlv){
-      case 0: printf("TLV type: Pad1\n"); 
-	break;
-      case 1: printf("TLV type: PadN\n"); 
-	break;
-      case 2: break;
-      case 3: break;
-      case 4: break;
-      case 5: break;
-      case 6: break;
-      default: printf("TLV inconnu: type:%d\n", typetlv);
-      }
-      return typetlv;
+      
+  if(rc == TYPE_SIZE){
+    if (typetlv == TYPE_PAD1) {
+      printf("TLV type: Pad1\n");
+      return TYPE_PAD1;
     }
+    switch(typetlv){
+      length = recupere_length(fd);
+    case 1: printf("TLV type: PadN length: %d\n", length);
+      break;
+    case 2: printf("TLV type: Text length: %d\n", length);
+      if(affiche_texte(fd, length) < 0)
+	return ERROR_READ_TLV;
+      break;
+      /*
+	case 3: break;
+	case 4: break;
+	case 5: break;
+	case 6: break;
+      */
+    default: printf("TLV inconnu: type:%d\n", typetlv);
+    }    
+    return typetlv;
   }
-
-  printf("\nlire_tlv(int):fin lecture\n");
-
-  return EOF_DAZI;
+    
+  if(rc == 0){
+    printf("\nlire_tlv(int):fin lecture\n");
+    return EOF_DAZI;
+  }
+   
+  return ERROR_READ_TLV;
 }
 
 
-
+/* TODO */
 int affiche_dazibao(char * dazibao){
 
   int fd, rc;
@@ -124,16 +159,18 @@ int affiche_dazibao(char * dazibao){
   /* Ouverture du fichier  */
   fd = open(dazibao, O_RDONLY);
   if(fd < 0){
-    perror("open");
+    perror("open:affiche_dazibao(char *)\n");
     return errno;
   }  
 
   /* Lecture et affichage du fichier */
   while(1){
 
-    rc = lire_tlv(fd);
+    rc = affiche_tlv(fd);
     if(rc < 0){
       printf("Erreur d'affichage !\n");
+      close(fd);
+      return rc;
     }else{
       if(rc == 0) {
 	printf("Fin d'affichage !\n");
