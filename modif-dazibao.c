@@ -53,13 +53,12 @@ int verifie_entete(char * dazibao){
  */
 int affiche_texte(int fd, int length){
     char buf[BUF_LEN];
-    int lus;
-    int ecrits;
+    int lus, ecrits, reste = length, rc;
     printf("\n");
     while(1){
 
-	if(length < BUF_LEN) 
-	    lus = read(fd, buf, length);
+	if(reste < BUF_LEN) 
+	    lus = read(fd, buf, reste);
 	else
 	    lus = read(fd, buf, BUF_LEN);
 
@@ -82,7 +81,13 @@ int affiche_texte(int fd, int length){
 	    }
 	}
 
-	length -= lus;
+	reste -= lus;
+    }
+    //On replace le curseur comme avant la lecture
+    rc = lseek(fd, -length, SEEK_CUR);
+    if(rc < 0){
+      perror("lseek:affiche_texte(int,int)");
+      return ERROR_SEEK_TLV;
     }
     return 0;
 }
@@ -93,7 +98,7 @@ int recupere_length(int fd){
   char buflen[LENGTH_SIZE];
   rc = read(fd, buflen, LENGTH_SIZE);
   if(rc < 0){
-    perror("read:lire_length");
+    perror("read:recupere_length");
     return ERROR_READ_TLV;
   }
   else{
@@ -105,7 +110,7 @@ int recupere_length(int fd){
       length += buflen[2];
     }
     else{
-      printf("read:lire_length(tous les octets n'ont pas etes lus)\n");
+      printf("read:recupere_length(tous les octets n'ont pas etes lus)\n");
       return ERROR_READ_TLV;
     }
   }
@@ -132,15 +137,22 @@ int affiche_tlv(int fd){
       return TYPE_PAD1;
     }
 
+    length = recupere_length(fd);
+    printf("length:affiche_tlv:%d", length);
     switch(typetlv){
 
-      length = recupere_length(fd);
-
-    case 1: printf("TLV type: PadN length: %d\n", length);
+      
+    case 1: {
+      printf("TLV type: PadN length: %d\n", length);
+    }
       break;
 
-    case 2: printf("TLV type: Text length: %d\n", length);
-      return affiche_texte(fd, length);
+    case 2: {
+      printf("TLV type: Text length: %d\n", length);
+      rc = affiche_texte(fd, length);
+      if(rc < 0) 
+	return rc;
+    }
       break;
       /*
 	case 3: break;
@@ -148,13 +160,19 @@ int affiche_tlv(int fd){
 	case 5: break;
 	case 6: break;
       */
-      rc = lseek(fd, length, SEEK_CUR);
-      if(rc < 0){
-	perror("lseek:affiche_tlv");
-	return ERROR_SEEK_TLV;
-      }
-    default: printf("TLV inconnu: type:%d\n", typetlv);
+      // On saute automatiquement les donnees du TLV
+      
+    default: {
+      printf("TLV inconnu: type:%d length:%d\n", typetlv, length);
+    }
+      
     }    
+    rc = lseek(fd, length, SEEK_CUR);
+    printf("lseek:affiche_tlv:%d", rc);
+    if(rc < 0){
+      perror("lseek:affiche_tlv");
+      return ERROR_SEEK_TLV;
+    }
     return typetlv;
   }
   else{

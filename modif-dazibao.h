@@ -19,7 +19,7 @@ int verifie_entete(char * dazibao); // TEST OK
    Renvoie 0 si tout va bien, sinon un 
    entier negatif.
  */
-int affiche_texte(int fd, int length);
+int affiche_texte(int fd, int length); //TEST OK - REMAIN
 
 
 
@@ -40,7 +40,7 @@ int recupere_length(int fd); // TEST OK
    Renvoie un entier negatif en cas de
    fin du fichier ou d'erreur.
  */
-int affiche_tlv(int fd);
+int affiche_tlv(int fd); //TEST EN COURS
 
 
 
