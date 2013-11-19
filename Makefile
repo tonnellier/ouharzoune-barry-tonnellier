@@ -7,4 +7,3 @@ modif-dazibao.o: modif-dazibao.c
 clean:
 	rm main
 	rm modif-dazibao.o
-	rm *~
