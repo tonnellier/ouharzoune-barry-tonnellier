@@ -10,6 +10,9 @@
 
 #define HEADER_ERROR -53
 #define ERROR_READ_TLV -2
+#define ERROR_SEEK_TLV -5
+#define ERROR_WRITE_TEXT -3
+#define ERROR_UNKNOW -4
 #define EOF_DAZI -1
 #define BUF_LEN 64
 
@@ -43,19 +46,22 @@ int verifie_entete(char * dazibao){
   return 0;
 }
 
-/* TODO
+/* TEST OK
+   TODO
+   Il reste encore a bien decouper les mots du texte
  */
 int affiche_texte(int fd, int length){
     char buf[BUF_LEN];
     int lus;
     int ecrits;
+    printf("\n");
     while(1){
-      printf("length:%d\n", length);
+
 	if(length < BUF_LEN) 
 	    lus = read(fd, buf, length);
 	else
 	    lus = read(fd, buf, BUF_LEN);
-	printf("lus:%d\n", lus);
+
 	if (lus < 0){
 	    perror("read:affiche_texte(int,int)");
 	    return ERROR_READ_TLV;
@@ -66,10 +72,15 @@ int affiche_texte(int fd, int length){
 		break;
 	    }
 	    else{
-	      printf("%s\n", buf);
+	      ecrits = write(STDOUT_FILENO, buf, lus);
+	      if(ecrits < 0){
+		perror("write:affiche_texte(int,int)");
+		return ERROR_WRITE_TEXT;
+	      }
 	      printf("\n");
 	    }
 	}
+
 	length -= lus;
     }
     return 0;
@@ -109,22 +120,26 @@ int affiche_tlv(int fd){
   rc = read(fd, &typetlv, TYPE_SIZE);
 
   if(rc < 0){
-    perror("read");
+    perror("read:affiche_tlv");
     return ERROR_READ_TLV;
   }
       
   if(rc == TYPE_SIZE){
+
     if (typetlv == TYPE_PAD1) {
       printf("TLV type: Pad1\n");
       return TYPE_PAD1;
     }
+
     switch(typetlv){
+
       length = recupere_length(fd);
+
     case 1: printf("TLV type: PadN length: %d\n", length);
       break;
+
     case 2: printf("TLV type: Text length: %d\n", length);
-      if(affiche_texte(fd, length) < 0)
-	return ERROR_READ_TLV;
+      return affiche_texte(fd, length);
       break;
       /*
 	case 3: break;
@@ -132,17 +147,24 @@ int affiche_tlv(int fd){
 	case 5: break;
 	case 6: break;
       */
+      rc = lseek(fd, length, SEEK_CUR);
+      if(rc < 0){
+	perror("lseek:affiche_tlv");
+	return ERROR_SEEK_TLV;
+      }
     default: printf("TLV inconnu: type:%d\n", typetlv);
     }    
     return typetlv;
   }
+  else{
     
-  if(rc == 0){
-    printf("\nlire_tlv(int):fin lecture\n");
-    return EOF_DAZI;
+    if(rc == 0){
+      printf("\nlire_tlv(int):fin lecture\n");
+      return EOF_DAZI;
+    }
   }
    
-  return ERROR_READ_TLV;
+  return ERROR_UNKNOW;
 }
 
 
