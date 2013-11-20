@@ -10,16 +10,16 @@
 
 
 #define HEADER_ERROR -53
-#define ERROR_READ_TLV -2
-#define ERROR_SEEK_TLV -5
+#define ERROR_READ_DAZI -2
+#define ERROR_SEEK_DAZI -5
 #define ERROR_WRITE_TEXT -3
 #define ERROR_UNKNOW -4
 #define EOF_DAZI -1
-#define BUF_LEN 64
+#define BUF_LEN_TEXT 64
 
 /* TEST OK */
 int verifie_entete(char * dazibao){
-  char head[HEADER_SIZE];
+  unsigned char head[HEADER_SIZE];
   int fd, rc;
   /* TODO
     ajouter la pose d'un verrou flock    
@@ -52,19 +52,19 @@ int verifie_entete(char * dazibao){
    Il reste encore a bien decouper les mots du texte
  */
 int affiche_texte(int fd, int length){
-    char buf[BUF_LEN];
+    unsigned char buf[BUF_LEN_TEXT];
     int lus, ecrits, reste = length, rc;
     printf("\n");
     while(1){
 
-	if(reste < BUF_LEN) 
+	if(reste < BUF_LEN_TEXT) 
 	    lus = read(fd, buf, reste);
 	else
-	    lus = read(fd, buf, BUF_LEN);
+	    lus = read(fd, buf, BUF_LEN_TEXT);
 
 	if (lus < 0){
 	    perror("read:affiche_texte(int,int)");
-	    return ERROR_READ_TLV;
+	    return ERROR_READ_DAZI;
 	}
 	else{
 	    if(lus == 0){
@@ -87,20 +87,23 @@ int affiche_texte(int fd, int length){
     rc = lseek(fd, -length, SEEK_CUR);
     if(rc < 0){
       perror("lseek:affiche_texte(int,int)");
-      return ERROR_SEEK_TLV;
+      return ERROR_SEEK_DAZI;
     }
     return 0;
 }
 
-// TEST OK
+// TODO
 int recupere_length(int fd){
   int rc, length = 0;
-  char buflen[LENGTH_SIZE];
+  unsigned char buflen[LENGTH_SIZE];
+  // On avance ! ******************************
   rc = read(fd, buflen, LENGTH_SIZE);
+  printf("recupere_length: avance de %d\n", rc);
   if(rc < 0){
     perror("read:recupere_length");
-    return ERROR_READ_TLV;
+    return ERROR_READ_DAZI;
   }
+  
   else{
     if(rc == LENGTH_SIZE){
       length = buflen[0];
@@ -111,23 +114,39 @@ int recupere_length(int fd){
     }
     else{
       printf("read:recupere_length(tous les octets n'ont pas etes lus)\n");
-      return ERROR_READ_TLV;
+      return ERROR_READ_DAZI;
     }
   }
   return length;
 }
 
+/* TODO
+
+ */
+int recupere_date(int fd){
+  //unsigned int date;
+  return 0;
+}
+
 /* TODO */
 int affiche_tlv(int fd){
   int rc;
-  char typetlv;
+  unsigned char typetlv;
   int length = -1;
-  
+  // On est a ?
+  rc = lseek(fd, 0, SEEK_CUR);
+  printf("lseek:debut de affiche_tlv: on se retrouve a %d\n", rc);
+  if(rc < 0){
+      perror("lseek:affiche_tlv");
+      return ERROR_SEEK_DAZI;
+    }
+  // On avance ! ********************
   rc = read(fd, &typetlv, TYPE_SIZE);
+  printf("affiche_tlv: on avance de %d\n", rc);
 
   if(rc < 0){
     perror("read:affiche_tlv");
-    return ERROR_READ_TLV;
+    return ERROR_READ_DAZI;
   }
       
   if(rc == TYPE_SIZE){
@@ -136,59 +155,101 @@ int affiche_tlv(int fd){
       printf("TLV type: Pad1\n");
       return TYPE_PAD1;
     }
-
+    // On avance ! ******************************
     length = recupere_length(fd);
-    printf("length:affiche_tlv:%d", length);
-    switch(typetlv){
+    printf("retour de recupere_length: %d\n", length);
 
-      
+
+
+    
+    switch(typetlv){      
     case 1: {
-      printf("TLV type: PadN length: %d\n", length);
+      printf("TLV type: PadN, length: %d\n", length);
     }
       break;
-
+      
     case 2: {
-      printf("TLV type: Text length: %d\n", length);
+      printf("TLV type: Text, length: %d\n", length);
       rc = affiche_texte(fd, length);
       if(rc < 0) 
 	return rc;
     }
       break;
-      /*
-	case 3: break;
-	case 4: break;
-	case 5: break;
-	case 6: break;
+      
+    case 3: {
+      printf("TLV type: PNG, length: %d\n", length);
+    }
+      break;
+
+    case 4: {
+      printf("TLV type: JPEG, length: %d\n", length);
+    }
+      break;
+
+    case 5: {
+      printf("TLV type: Compound, length: %d\n", length);
+      /* TODO
+	 Prevoir d'une façon recursive de prevoir 
+	 la profondeur d'un TLV
+	 
+       */
+      return typetlv;
+    }
+      break;
+      	
+    case 6: {
+      printf("TLV type: Dated, length: %d\n", length);
+      
+      //pour sauter le champ date
+      rc = lseek(fd, DATE_SIZE, SEEK_CUR);
+      if(rc < 0){
+	perror("lseek:affiche_tlv:dated");
+	return ERROR_SEEK_DAZI;
+      }
+      /*on rappelle la fonction dans le TLV Dated
+      TODO prevoir recursivement pour lire tous les
+      TLV d'un meme compound
       */
+      affiche_tlv(fd);
+      return typetlv;
+    }
+      break;
+      
       // On saute automatiquement les donnees du TLV
       
     default: {
       printf("TLV inconnu: type:%d length:%d\n", typetlv, length);
     }
-      
-    }    
+    }
+    //fin switch
+
+
+
+
+    // On avance ! ***************************
     rc = lseek(fd, length, SEEK_CUR);
-    printf("lseek:affiche_tlv:%d", rc);
+    printf("lseek:affiche_tlv: on se retrouve a %d\n", rc);
     if(rc < 0){
       perror("lseek:affiche_tlv");
-      return ERROR_SEEK_TLV;
+      return ERROR_SEEK_DAZI;
     }
     return typetlv;
+
   }
   else{
     
     if(rc == 0){
-      printf("\nlire_tlv(int):fin lecture\n");
+      printf("\naffiche_tlv(int):fin lecture\n");
       return EOF_DAZI;
     }
-  }
+  } 
    
   return ERROR_UNKNOW;
 }
 
 
 /* TODO */
-int affiche_dazibao(char * dazibao){
+void affiche_dazibao(char * dazibao){
 
   int fd, rc;
   
@@ -201,27 +262,32 @@ int affiche_dazibao(char * dazibao){
   fd = open(dazibao, O_RDONLY);
   if(fd < 0){
     perror("open:affiche_dazibao(char *)\n");
-    return errno;
+    return;
   }  
 
+  //On passe l'entete du fichier
+  rc = lseek(fd, HEADER_SIZE, SEEK_SET);
+  if(rc < 0){
+    perror("lseek:affiche_dazibao");
+    return;
+  }
+
+
   /* Lecture et affichage du fichier */
-  while(1){
+  do{
 
     rc = affiche_tlv(fd);
-    if(rc < 0){
-      printf("Erreur d'affichage !\n");
+    
+    if(rc < EOF_DAZI){
+      printf("Erreur d'affichage:%d\n", rc);
       close(fd);
-      return rc;
-    }else{
-      if(rc == 0) {
-	printf("Fin d'affichage !\n");
-	break;
-      }
+      return;
     }
+    printf("\n");
 
-  }
+  }while(EOF_DAZI < rc);
   
+  printf("Fin d'affichage !\n");
   close(fd);
-  return 0;
 }
 

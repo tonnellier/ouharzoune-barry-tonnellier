@@ -63,21 +63,19 @@ void affiche_menu_modif_dazibao(char * dazibao){
    Deuxieme gros menu a finir
  */
 void menu_modif_dazibao(char * dazibao){  
-  int choix, rc;
-
+  int choix, nbopt=1;
+  
   while(1){
     affiche_menu_modif_dazibao(dazibao);
-    choix = recupere_choix_menu(1);
+    choix = recupere_choix_menu(nbopt);
     
     if(choix == QUITTER) return;
+
     switch(choix){
 
-    case 1:
-	rc = affiche_dazibao(dazibao);
-	if(rc == HEADER_ERROR){
-	  printf("L'entete fichier n'est pas correct !");
-	  return;
-	}
+    case 1: {
+	affiche_dazibao(dazibao);
+    }
 	break;
     }
     

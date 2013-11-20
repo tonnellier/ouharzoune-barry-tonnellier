@@ -23,7 +23,7 @@ int affiche_texte(int fd, int length); //TEST OK - REMAIN
 
 
 
-/* Lire la taille d'un TLV à partir d'un
+/* Lit la taille d'un TLV à partir d'un
    descripteur de fichier fd positionne
    au bon endroit puis renvoie 
    le champs length de celui-ci.
@@ -33,6 +33,11 @@ int affiche_texte(int fd, int length); //TEST OK - REMAIN
 int recupere_length(int fd); // TEST OK
 
 
+/* Lit la date d'un TLV de type dated.
+   Renvoie un entier positif pour la date
+   sinon un entier negatif en cas d'erreur
+ */
+int recupere_date(int fd);
 
 /* Affiche un TLV à partir d'un descripteur de 
    fichier positionné au début de celui-ci.
@@ -48,5 +53,5 @@ int affiche_tlv(int fd); //TEST EN COURS
    Renvoie 0 si tout va bien, sinon
    un entier negatif.
 */
-int affiche_dazibao(char * dazibao);
+void affiche_dazibao(char * dazibao);
 
