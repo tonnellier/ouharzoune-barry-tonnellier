@@ -1,5 +1,5 @@
 Auteurs du projet : Karim Ouharzoune, Mamadou Barry et Jérôme Tonnellier.
 
-Compilation du projet : exécutez le fichier "Makefile".
+Compilation du projet : exécutez le fichier "Makefile" avec la commande make.
 
-Exécution du projet : exécutez le fichier "main" puis suivre les indications du menu.
+Exécution du projet : exécutez le fichier "mdazi" puis suivre les indications du menu. Il y a possibilites d'entrer en ligne de commande plusieurs dazibao, à modifier.
