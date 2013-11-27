@@ -1,5 +1,8 @@
 #define HEADER_ERROR -53
-#define ERROR_READ_TLV -2
+#define ERROR_READ_DAZI -2
+#define ERROR_SEEK_DAZI -5
+#define ERROR_WRITE_TEXT -3
+#define ERROR_UNKNOW -4
 #define EOF_DAZI -1
 
 /* Verifie l'entete d'un fichier 
