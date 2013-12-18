@@ -27,20 +27,35 @@ int verifie_entete(char * dazibao){
 
   fd = open(dazibao, O_RDONLY);
   if(fd < 0){
-    perror("open:verifie_entete");
-    return errno;
+    perror("open:verifie_entete()");
+    close(fd);
+    return fd;
   }
 
   /* Lecture de l'entete */
   rc =  read(fd, head, HEADER_SIZE);
   if(rc < 0){
-    perror("read:verifie_entete");
-    return errno;
+    perror("read:verifie_entete()");
+    close(fd);
+    return rc;
   }else{
-    if(rc != HEADER_SIZE || head[0] != MAGIC || head[1] != VERSION)
+
+
+    if(rc != HEADER_SIZE){
+      printf("La taille de l'entete n'a pu etre lue\n");
       return HEADER_ERROR;
-    else
-      printf("L'entete de \"%s\" est correct !\n", dazibao);
+    }else{
+      if(head[0] != MAGIC){
+	printf("Le numero magic n'est pas correct:MAGIC=%d\n",head[0]);
+	return HEADER_ERROR;
+      }
+      if(head[1] != VERSION){
+	printf("Le numero de version n'est pas correct:");
+	printf("VERSION=%d\n", head[1]);
+	return HEADER_ERROR;
+      }
+    }
+    
   }
 
   close(fd);
@@ -54,7 +69,6 @@ int verifie_entete(char * dazibao){
 int affiche_texte(int fd, int length){
     unsigned char buf[BUF_LEN_TEXT];
     int lus, ecrits, reste = length, rc;
-    printf("\n");
     while(1){
 
 	if(reste < BUF_LEN_TEXT) 
@@ -68,16 +82,16 @@ int affiche_texte(int fd, int length){
 	}
 	else{
 	    if(lus == 0){
-		printf("\n");
 		break;
 	    }
 	    else{
 	      ecrits = write(STDOUT_FILENO, buf, lus);
+	      printf("\n");
 	      if(ecrits < 0){
 		perror("write:affiche_texte(int,int)");
 		return ERROR_WRITE_TEXT;
 	      }
-	      printf("\n");
+	      
 	    }
 	}
 
@@ -98,7 +112,6 @@ int recupere_length(int fd){
   unsigned char buflen[LENGTH_SIZE];
   // On avance ! ******************************
   rc = read(fd, buflen, LENGTH_SIZE);
-  printf("recupere_length: avance de %d\n", rc);
   if(rc < 0){
     perror("read:recupere_length");
     return ERROR_READ_DAZI;
@@ -135,14 +148,12 @@ int affiche_tlv(int fd){
   int length = -1;
   // On est a ?
   rc = lseek(fd, 0, SEEK_CUR);
-  printf("lseek:debut de affiche_tlv: on se retrouve a %d\n", rc);
   if(rc < 0){
       perror("lseek:affiche_tlv");
       return ERROR_SEEK_DAZI;
-    }
+  }
   // On avance ! ********************
   rc = read(fd, &typetlv, TYPE_SIZE);
-  printf("affiche_tlv: on avance de %d\n", rc);
 
   if(rc < 0){
     perror("read:affiche_tlv");
@@ -157,14 +168,14 @@ int affiche_tlv(int fd){
     }
     // On avance ! ******************************
     length = recupere_length(fd);
-    printf("retour de recupere_length: %d\n", length);
-
+    
 
 
     
     switch(typetlv){      
     case 1: {
       printf("TLV type: PadN, length: %d\n", length);
+      
     }
       break;
       
@@ -176,6 +187,8 @@ int affiche_tlv(int fd){
     }
       break;
       
+      
+      
     case 3: {
       printf("TLV type: PNG, length: %d\n", length);
     }
@@ -185,6 +198,7 @@ int affiche_tlv(int fd){
       printf("TLV type: JPEG, length: %d\n", length);
     }
       break;
+      
 
     case 5: {
       printf("TLV type: Compound, length: %d\n", length);
@@ -196,6 +210,7 @@ int affiche_tlv(int fd){
       return typetlv;
     }
       break;
+      
       	
     case 6: {
       printf("TLV type: Dated, length: %d\n", length);
@@ -211,6 +226,7 @@ int affiche_tlv(int fd){
       TLV d'un meme compound
       */
       affiche_tlv(fd);
+      printf("\n");
       return typetlv;
     }
       break;
@@ -228,7 +244,6 @@ int affiche_tlv(int fd){
 
     // On avance ! ***************************
     rc = lseek(fd, length, SEEK_CUR);
-    printf("lseek:affiche_tlv: on se retrouve a %d\n", rc);
     if(rc < 0){
       perror("lseek:affiche_tlv");
       return ERROR_SEEK_DAZI;
@@ -239,7 +254,6 @@ int affiche_tlv(int fd){
   else{
     
     if(rc == 0){
-      printf("\naffiche_tlv(int):fin lecture\n");
       return EOF_DAZI;
     }
   } 
@@ -277,17 +291,14 @@ void affiche_dazibao(char * dazibao){
   do{
 
     rc = affiche_tlv(fd);
-    
     if(rc < EOF_DAZI){
       printf("Erreur d'affichage:%d\n", rc);
       close(fd);
       return;
     }
-    printf("\n");
 
   }while(EOF_DAZI < rc);
   
-  printf("Fin d'affichage !\n");
   close(fd);
 }
 

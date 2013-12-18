@@ -9,7 +9,10 @@
 #include "norme.h"
 #include "modif-dazibao.c"
 
-
+struct dazis_verifies {
+  int nb_dazis;
+  char ** dazis;
+};
 
 int recupere_choix_menu(int nb_choix){
   char choix_string[TAILLE_CHOIX];
@@ -19,11 +22,11 @@ int recupere_choix_menu(int nb_choix){
   rc = scanf("%s", choix_string);
   if(!rc){
     perror("scanf\n");
-    exit(EXIT_FAILURE);
+    return SANS_CHOIX;
   }else{      
     rc = strcmp(choix_string,"q");
     if(!rc){
-      choix_fichier = QUITTER;
+      return QUITTER;
     }else{
       /* atoi renvoie 0 en cas d'erreur
 	 comme choix ne dois pas valoir 0
@@ -31,9 +34,8 @@ int recupere_choix_menu(int nb_choix){
       */
       choix_fichier = atoi(choix_string);
       // choix non disponible
-      if(choix_fichier <= 0 || nb_choix < choix_fichier){ 
+      if(choix_fichier < 1 || nb_choix < choix_fichier){ 
 	choix_fichier = SANS_CHOIX;
-	printf("Erreur de choix !\n");
       }
     }
   }
@@ -62,7 +64,7 @@ void affiche_menu_modif_dazibao(char * dazibao){
 /* TODO 5
    Deuxieme gros menu a finir
  */
-void menu_modif_dazibao(char * dazibao){  
+void menu_modif_dazibao(char * dazibao){
   int choix, nbopt=1;
   
   while(1){
@@ -77,6 +79,11 @@ void menu_modif_dazibao(char * dazibao){
 	affiche_dazibao(dazibao);
     }
 	break;
+	
+    default: {
+      printf("Mauvais choix\n");
+    }
+
     }
     
     /* TODO 2
@@ -96,55 +103,79 @@ void menu_modif_dazibao(char * dazibao){
   return;
 }
 
-
-
-/* TODO 1
- */
-char * lire_string(){
-  printf("Tapez le repertoire du fichier à trouver");
-  return NULL;
-} 
-
-
-
-
-void affiche_menu_choix_fichier(int argc, char ** argv){
-  int i = 1;
+void affiche_menu_choix_fichier(struct dazis_verifies * sdv){
+  int i;
   printf("\n\n************** choix fichier *************\n");
-  for(i = 1; i < argc; i++){
-    printf("%d - modifier le dazibao \"%s\" ?\n", i, argv[i]);
+  for(i = 1; i <= sdv->nb_dazis; i++){
+    printf("%d - modifier le dazibao \"%s\" ?\n", i, sdv->dazis[i-1]);
   }
-  if(argc == 1)
-    printf("%d - modifier un dazibao\n", argc);
-  else
-    printf("%d - modifier un autre dazibao\n", argc);
   printf("q - quitter\n");
   printf("******************************************\n");
+  return;
 }
 
+struct dazis_verifies *  verifie_fichiers_dazibao(int argc, char ** argv){
+  struct dazis_verifies * sdv = NULL;
+  int i, rc, len;
+  //initialisation de la structure pour stocker les dazibaos corrects
+  sdv = (struct dazis_verifies *)malloc(sizeof(struct dazis_verifies));
+  if(sdv == NULL){
+    perror("malloc-1:verifie_fichiers_dazibao()");
+    return NULL;
+  }
+  sdv->nb_dazis = 0;
+  sdv->dazis = (char **)malloc(sizeof(char *)*MAX_FICHIERS);
+  if(sdv->dazis == NULL){
+    perror("malloc-2:verifie_fichiers_dazibao()");
+    return NULL;
+  }
+  
+  //parcours et vérification des dazibaos donnés dans argv
+  for(i = 1; i < argc; i++){
+    rc = verifie_entete(argv[i]);
+    if(rc == 0){
+      len = strlen(argv[i])+1;
+      if(len < 0) return NULL;
+      sdv->dazis[sdv->nb_dazis] = (char *)malloc(sizeof(char) * len);
+      sdv->dazis[sdv->nb_dazis] = 
+	strncpy(sdv->dazis[sdv->nb_dazis], argv[i], len);
+      if(sdv->dazis[sdv->nb_dazis]==NULL) return NULL;
+      sdv->nb_dazis++;
+    }else{
+      //TODO
+      printf("le fichier \"%s\" n'est pas pris en charge\n\n", argv[i]);
+    }
+  }
 
+  return sdv;
+}
 
 int main(int argc, char ** argv){  
   int choix_fichier = SANS_CHOIX;
+  struct dazis_verifies * sdv;
+  
+  //prétraitement des fichiers à vérifier
+  sdv = verifie_fichiers_dazibao(argc, argv);
+  if(sdv == NULL || sdv->nb_dazis == 0){
+    printf("Il n'y a pas de dazibao valide\n");
+    return 0;
+  }
 
   do{
-    affiche_menu_choix_fichier(argc,argv);
-
-    choix_fichier = recupere_choix_menu(argc);
-
-    if(choix_fichier == QUITTER) return 0;
-    if(choix_fichier == SANS_CHOIX) continue;
-    if(choix_fichier < argc){
-	menu_modif_dazibao(argv[choix_fichier]);
-    }else{
-      /* TODO 1
-	 faire une fonction qui récupere 
-	 un nom de fichier (un char *)
-       */
-      printf("Recherche fichier non prise en charge !\n");
-    }    
-
+    affiche_menu_choix_fichier(sdv);
+  
+    choix_fichier = recupere_choix_menu(sdv->nb_dazis);
+    
+    if(choix_fichier == QUITTER) break;
+    if(choix_fichier == SANS_CHOIX) {
+      printf("Mauvais choix\n");
+      continue;
+    }
+    if(choix_fichier <= sdv->nb_dazis){
+      menu_modif_dazibao(sdv->dazis[choix_fichier-1]);
+    }
+    
   }while(1);
-
+  
   return 0;
 }
