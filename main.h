@@ -9,18 +9,19 @@
 int main(int argc, char ** argv);
 
 /* Vérifie l'entete d'une liste de fichiers dazibao
-   puis renvoie la liste des fichiers corrects  
+   puis renvoie la liste des fichiers corrects dans 
+   une structure les contenants avec leur nombre associé
 */
 struct dazis_verifies * verifie_fichiers_dazibao(int argc, char ** argv);
 
-/* Affiche le menu principal afin de selectionner le dazibaoX
-   a modifier selon les noms donnés en arguments du programme
+/* Affiche le menu principal afin de selectionner le dazibao
+   a modifier selon la structure verifiée sdv
  */
 void affiche_menu_choix_fichier(struct dazis_verifies * sdv);
 
 /* Permet de lire le choix fichier de l'utilisateur
-   et verifie sa cohérence.
-   Elle renvoie le choix.
+   dans les menus et verifie sa cohérence.
+   Elle renvoie le choix associé.
  */
 int recupere_choix_menu(int nb_choix);
 
@@ -34,6 +35,6 @@ int recupere_choix_menu(int nb_choix);
 void menu_modif_dazibao(char * dazibao);
 
 /*Affiche le sous-menu afin de modifier un dazibao
-  selectionne
+  selectionné
 */
 void affiche_menu_modif_dazibao(char * dazibao);

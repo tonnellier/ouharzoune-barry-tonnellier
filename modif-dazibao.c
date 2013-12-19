@@ -146,13 +146,11 @@ int affiche_tlv(int fd){
   int rc;
   unsigned char typetlv;
   int length = -1;
-  // On est a ?
   rc = lseek(fd, 0, SEEK_CUR);
   if(rc < 0){
       perror("lseek:affiche_tlv");
       return ERROR_SEEK_DAZI;
   }
-  // On avance ! ********************
   rc = read(fd, &typetlv, TYPE_SIZE);
 
   if(rc < 0){
@@ -166,7 +164,6 @@ int affiche_tlv(int fd){
       printf("TLV type: Pad1\n");
       return TYPE_PAD1;
     }
-    // On avance ! ******************************
     length = recupere_length(fd);
     
 
@@ -226,7 +223,6 @@ int affiche_tlv(int fd){
       TLV d'un meme compound
       */
       affiche_tlv(fd);
-      printf("\n");
       return typetlv;
     }
       break;
@@ -289,14 +285,15 @@ void affiche_dazibao(char * dazibao){
 
   /* Lecture et affichage du fichier */
   do{
-
+    printf("------------------------------\n");
     rc = affiche_tlv(fd);
+    printf("------------------------------\n");
     if(rc < EOF_DAZI){
       printf("Erreur d'affichage:%d\n", rc);
       close(fd);
       return;
     }
-
+    
   }while(EOF_DAZI < rc);
   
   close(fd);

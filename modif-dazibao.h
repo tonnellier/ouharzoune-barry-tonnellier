@@ -6,7 +6,7 @@
 #define EOF_DAZI -1
 
 /* Verifie l'entete d'un fichier 
-   cense etre un dazibao et renvoie le
+   censé etre un dazibao et renvoie le
    resultat de la verification.
    La fonction renvoie 0 si tout va bien, 
    sinon un entier negatif.
