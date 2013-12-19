@@ -47,6 +47,9 @@ int recupere_date(int fd);
    Renvoie le type du TLV lu.
    Renvoie un entier negatif en cas de
    fin du fichier ou d'erreur.
+
+   <a_ecrire> permet de compter le nombre d'octets
+   restant pour afficher un TLV compliqué
  */
 int affiche_tlv(int fd); //TEST EN COURS
 

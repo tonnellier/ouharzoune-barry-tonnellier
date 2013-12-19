@@ -110,7 +110,6 @@ int affiche_texte(int fd, int length){
 int recupere_length(int fd){
   int rc, length = 0;
   unsigned char buflen[LENGTH_SIZE];
-  // On avance ! ******************************
   rc = read(fd, buflen, LENGTH_SIZE);
   if(rc < 0){
     perror("read:recupere_length");
@@ -144,115 +143,119 @@ int recupere_date(int fd){
 /* TODO */
 int affiche_tlv(int fd){
   int rc;
-  unsigned char typetlv;
-  int length = -1;
-  rc = lseek(fd, 0, SEEK_CUR);
-  if(rc < 0){
-      perror("lseek:affiche_tlv");
-      return ERROR_SEEK_DAZI;
-  }
-  rc = read(fd, &typetlv, TYPE_SIZE);
+  int length;
+  char typetlv;
+  int reste = 0;
 
-  if(rc < 0){
-    perror("read:affiche_tlv");
-    return ERROR_READ_DAZI;
-  }
-      
-  if(rc == TYPE_SIZE){
+  do{
 
-    if (typetlv == TYPE_PAD1) {
-      printf("TLV type: Pad1\n");
-      return TYPE_PAD1;
-    }
-    length = recupere_length(fd);
-    
-
-
-    
-    switch(typetlv){      
-    case 1: {
-      printf("TLV type: PadN, length: %d\n", length);
-      
-    }
-      break;
-      
-    case 2: {
-      printf("TLV type: Text, length: %d\n", length);
-      rc = affiche_texte(fd, length);
-      if(rc < 0) 
-	return rc;
-    }
-      break;
-      
-      
-      
-    case 3: {
-      printf("TLV type: PNG, length: %d\n", length);
-    }
-      break;
-
-    case 4: {
-      printf("TLV type: JPEG, length: %d\n", length);
-    }
-      break;
-      
-
-    case 5: {
-      printf("TLV type: Compound, length: %d\n", length);
-      /* TODO
-	 Prevoir d'une façon recursive de prevoir 
-	 la profondeur d'un TLV
-	 
-       */
-      return typetlv;
-    }
-      break;
-      
-      	
-    case 6: {
-      printf("TLV type: Dated, length: %d\n", length);
-      
-      //pour sauter le champ date
-      rc = lseek(fd, DATE_SIZE, SEEK_CUR);
-      if(rc < 0){
-	perror("lseek:affiche_tlv:dated");
-	return ERROR_SEEK_DAZI;
-      }
-      /*on rappelle la fonction dans le TLV Dated
-      TODO prevoir recursivement pour lire tous les
-      TLV d'un meme compound
-      */
-      affiche_tlv(fd);
-      return typetlv;
-    }
-      break;
-      
-      // On saute automatiquement les donnees du TLV
-      
-    default: {
-      printf("TLV inconnu: type:%d length:%d\n", typetlv, length);
-    }
-    }
-    //fin switch
-
-
-
-
-    // On avance ! ***************************
-    rc = lseek(fd, length, SEEK_CUR);
+    rc = lseek(fd, 0, SEEK_CUR);
     if(rc < 0){
       perror("lseek:affiche_tlv");
       return ERROR_SEEK_DAZI;
     }
-    return typetlv;
+    rc = read(fd, &typetlv, TYPE_SIZE);
 
-  }
-  else{
-    
-    if(rc == 0){
-      return EOF_DAZI;
+    if(rc < 0){
+      perror("read:affiche_tlv");
+      return ERROR_READ_DAZI;
     }
-  } 
+      
+    if(rc == TYPE_SIZE){
+    
+      if (typetlv == TYPE_PAD1) {
+	printf("TLV type: Pad1\n");
+      }
+      length = recupere_length(fd);
+      if(reste == 0) {
+	printf("--------------------------------------------------------\n");
+	reste = length;
+      }
+    
+      switch(typetlv){
+      case 1: {
+	printf("TLV type: PadN, length: %d\n", length);
+      
+      }
+	break;
+      
+      case 2: {
+	printf("TLV type: Text, length: %d\n", length);
+	rc = affiche_texte(fd, length);
+	if(rc < 0)
+	  return rc;
+      }
+	break;
+      
+      
+      
+      case 3: {
+	printf("TLV type: PNG, length: %d\n", length);
+      }
+	break;
+
+      case 4: {
+	printf("TLV type: JPEG, length: %d\n", length);
+      }
+	break;
+      
+
+      case 5: {
+	printf("TLV type: Compound, length: %d\n", length);
+	/* TODO
+	   Prevoir d'une façon recursive de prevoir
+	   la profondeur d'un TLV
+	 
+	*/
+      }
+	break;
+      
+      	
+      case 6: {
+	printf("TLV type: Dated, length: %d\n", length);
+      
+	//pour sauter le champ date
+	rc = lseek(fd, DATE_SIZE, SEEK_CUR);
+	if(rc < 0){
+	  perror("lseek:affiche_tlv:dated");
+	  return ERROR_SEEK_DAZI;
+	}
+	/*on rappelle la fonction dans le TLV Dated
+	  TODO prevoir recursivement pour lire tous les
+	  TLV d'un meme compound
+	*/
+	
+      }
+	break;
+      
+	// On saute automatiquement les donnees du TLV
+      
+      default: {
+	printf("TLV inconnu: type:%d length:%d\n", typetlv, length);
+      }
+      }
+      //fin switch
+      if(typetlv != 5)
+	reste -= length;
+      if(reste == 0)
+	printf("--------------------------------------------------------\n\n");
+    
+
+      rc = lseek(fd, length, SEEK_CUR);
+      if(rc < 0){
+	perror("lseek:affiche_tlv");
+	return ERROR_SEEK_DAZI;
+      }
+
+    }
+    else{
+    
+      if(rc == 0){
+	return EOF_DAZI;
+      }
+    }
+    
+  }while(0 < rc);
    
   return ERROR_UNKNOW;
 }
@@ -285,9 +288,9 @@ void affiche_dazibao(char * dazibao){
 
   /* Lecture et affichage du fichier */
   do{
-    printf("------------------------------\n");
+    
     rc = affiche_tlv(fd);
-    printf("------------------------------\n");
+
     if(rc < EOF_DAZI){
       printf("Erreur d'affichage:%d\n", rc);
       close(fd);
