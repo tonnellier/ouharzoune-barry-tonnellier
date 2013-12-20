@@ -1,0 +1,10 @@
+-finir affichage
+-fonction ajout
+-fonction suppression
+
+-verrous (vider les tampons avant de lacher le verrou + attention a l'asynchronisme (msync))
+-creer fichier dazibao
+-tests (TLV inconnus) ?
+-notification (sockets + verifier derniere date modif)
+
+-modif texte fichier
