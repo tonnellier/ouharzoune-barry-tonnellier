@@ -42,16 +42,22 @@ int recupere_length(int fd); // TEST OK
  */
 int recupere_date(int fd);
 
-/* Affiche un TLV à partir d'un descripteur de 
+/* Affiche un TLV à partir d'un descripteur de
    fichier positionné au début de celui-ci.
-   Renvoie le type du TLV lu.
+   l'argument <offsetfin> permet de savoir
+   jusqu'a quel endroit du fichier on va devoir
+   lire les TLV d'une profondeur égale.
+   En sachant qu'a chaque fois qu'on lit un TLV
+   compound ou dated on change de profondeur.
+
+   Renvoie 0 si l'affichage s'est bien passé.
    Renvoie un entier negatif en cas de
    fin du fichier ou d'erreur.
 
    <a_ecrire> permet de compter le nombre d'octets
    restant pour afficher un TLV compliqué
  */
-int affiche_tlv(int fd); //TEST EN COURS
+int affiche_tlv(int fd, int tailledonnees); //TEST EN COURS
 
 
 
