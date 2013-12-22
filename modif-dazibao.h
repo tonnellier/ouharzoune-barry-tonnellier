@@ -40,7 +40,9 @@ int recupere_length(int fd); // TEST OK
    Renvoie un entier positif pour la date
    sinon un entier negatif en cas d'erreur
  */
+/*
 int recupere_date(int fd);
+*/
 
 /* Affiche un TLV à partir d'un descripteur de
    fichier positionné au début de celui-ci.
@@ -54,10 +56,11 @@ int recupere_date(int fd);
    Renvoie un entier negatif en cas de
    fin du fichier ou d'erreur.
 
-   <a_ecrire> permet de compter le nombre d'octets
+   <tailledonnees> permet de compter le nombre d'octets
    restant pour afficher un TLV compliqué
+   <num> permet de numeroter les TLV de 1 à n
  */
-int affiche_tlv(int fd, int tailledonnees); //TEST EN COURS
+int affiche_tlv(int fd, int tailledonnees, int num); //TEST EN COURS
 
 
 
@@ -67,3 +70,15 @@ int affiche_tlv(int fd, int tailledonnees); //TEST EN COURS
 */
 void affiche_dazibao(char * dazibao);
 
+
+/* Ouvre le fichier dazibao puis
+   appelle supprime_tlv_aux()
+   Renvoie 0 si tout va bien
+ */
+int supprime_tlv(char * dazibao, int num);
+
+/* 
+   Supprime un tlv a la position <num>
+   Renvoie 0 si tout va bien
+ */
+int supprime_tlv_aux(int fd, int num);

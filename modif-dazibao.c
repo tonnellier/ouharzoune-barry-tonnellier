@@ -11,6 +11,7 @@
 
 #define HEADER_ERROR -53
 #define ERROR_READ_DAZI -2
+#define ERROR_WRITE_DAZI -6
 #define ERROR_SEEK_DAZI -5
 #define ERROR_WRITE_TEXT -3
 #define ERROR_UNKNOW -4
@@ -68,6 +69,7 @@ int verifie_entete(char * dazibao){
 int affiche_texte(int fd, int length){
     unsigned char buf[BUF_LEN_TEXT];
     int lus, ecrits, reste = length, rc;
+    printf("-------------Text--------------\n");
     while(1){
 
 	if(reste < BUF_LEN_TEXT) 
@@ -102,6 +104,7 @@ int affiche_texte(int fd, int length){
       perror("lseek:affiche_texte(int,int)");
       return ERROR_SEEK_DAZI;
     }
+    printf("------------Fin-Text------------\n");
     return 0;
 }
 
@@ -136,21 +139,22 @@ int recupere_length(int fd){
 /* TODO
 
  */
+/*
 int recupere_date(int fd){
   //unsigned int date;
   return 0;
 }
-
+*/
 
 
 
 /* AFFICHE_TLV */
 
-int affiche_tlv(int fd, int tailledonnees){
+int affiche_tlv(int fd, int tailledonnees, int num){
   int i = 0, rc, length;
-  char typetlv;
+  unsigned char typetlv;
   
-  printf("--------------------------------\n");
+  
   
   while(i < tailledonnees){
     
@@ -167,7 +171,7 @@ int affiche_tlv(int fd, int tailledonnees){
     //Le champ length et autres n'exitent pas
     //Donc on sautes ces etapes
     if (typetlv == TYPE_PAD1) {
-	printf("TLV type: Pad1\n");
+      printf("numero=%d - TLV type: Pad1\n", num);
 	continue;
     }
 
@@ -192,8 +196,7 @@ int affiche_tlv(int fd, int tailledonnees){
       i+=DATE_SIZE;
     }    
 
-    //----------------------TO CHECK-----------------------
-    if(rc == TYPE_SIZE){      
+    if(rc == TYPE_SIZE){
 
       //recupere la taille d'un TLV et avance
       //jusqu'a la donnée de celui-ci
@@ -202,12 +205,12 @@ int affiche_tlv(int fd, int tailledonnees){
       switch(typetlv){
 	
       case 1: {
-	printf("TLV type: PadN, length: %d\n", length);
+	printf("numero=%d - TLV type: PadN, length: %d\n", num, length);
       
       }	break;
 	
       case 2: {
-	printf("TLV type: Text, length: %d\n", length);
+	printf("numero=%d - TLV type: Text, length: %d\n", num, length);
 	
 	//Affiche le texte et laisse le curseur 
 	//du fd initialement donné
@@ -220,35 +223,43 @@ int affiche_tlv(int fd, int tailledonnees){
       }	break;
       
       case 3: {
-	printf("TLV type: PNG, length: %d\n", length);
+	printf("numero=%d - TLV type: PNG, length: %d\n", num, length);
       }	break;
-
+	
       case 4: {
-	printf("TLV type: JPEG, length: %d\n", length);
+	printf("numero=%d - TLV type: JPEG, length: %d\n", num, length);
       }	break;
       
 	
       case 5: {
-	printf("TLV type: Compound, length: %d\n", length);
-	
-	rc = affiche_tlv(fd, length);
-	if(rc < 0){
-	  printf("Erreur:affiche_tlv():TLV Compound\n");
-	  return rc;
+	printf("\nnumero=%d - TLV type: Compound, length: %d\n", num, length);
+	printf("----------Compound-------------\n");
+	num = affiche_tlv(fd, length, num+1);
+	printf("----------Fin-Compound------------\n\n");
+	if(num < 0){
+	  printf("Erreur:affiche_tlv():TLV Compound\n");	 
+	  return num;
 	}
+	//on a avancé avec affiche_tlv(),
+	//on augmente logiquement i
+	i+=length;
 	continue;
 
       }	break;
       
 	
       case 6: {
-	printf("TLV type: Dated, length: %d\n", length);
-
-	rc = affiche_tlv(fd, length);
-	if(rc < 0){
+	printf("numero=%d - TLV type: Dated, length: %d\n", num, length);
+	printf("-----------Dated---------------\n");
+	num = affiche_tlv(fd, length, num+1);
+	printf("----------Fin-Dated--------------\n");
+	if(num < 0){
 	  printf("Erreur:affiche_tlv():TLV Dated\n");
-	  return rc;
+	  return num;
 	}
+	//on a avancé avec affiche_tlv,
+	//on augmente logiquement i 
+	i+=length;
 	continue;
 
       }	break;
@@ -256,7 +267,7 @@ int affiche_tlv(int fd, int tailledonnees){
 	// On saute automatiquement les donnees du TLV
 	
       default: {
-	printf("TLV inconnu: type:%d length:%d\n", typetlv, length);
+	printf("numero=%d - TLV inconnu: type:%d length:%d\n", num, typetlv, length);
       }
 	
       }
@@ -264,18 +275,19 @@ int affiche_tlv(int fd, int tailledonnees){
       
      rc = lseek(fd, length, SEEK_CUR);
      if(rc < 0){
-       perror("lseek:affiche_tlv");
+       perror("lseek:affiche_tlv()");
        return ERROR_SEEK_DAZI;
      }
      
      i+=length;
-     
+     //On incrémente le numero du TLV courant;
+     num++;
+
     }
-     // ---------------END TO CHECK----------------------------------
     
   }
-  printf("--------------------------------\n");
-  return 0;
+  
+  return num;
 }
 
 
@@ -311,8 +323,9 @@ void affiche_dazibao(char * dazibao){
   }
   //On recupere le nombre d'octets dans le fichier en excluant l'entete
   //tailledonnees = tailledonnees - rc;
-  
-  rc = affiche_tlv(fd, tailledonnees-HEADER_SIZE);
+  printf("---------Dazibao------------\n\n");
+  rc = affiche_tlv(fd, tailledonnees-HEADER_SIZE, 1);
+  printf("\n----------Fin-Dazibao------------\n");
   if(rc < 0){
     printf("Erreur d'affichage des TLVs\n");
   }
@@ -321,3 +334,117 @@ void affiche_dazibao(char * dazibao){
   return;
 }
 
+int supprime_tlv_aux(int fd,  int num){
+  int cur = 1, rc, length;
+  unsigned char typetlv;
+  
+  //verification du numero de TLV
+  if(num < cur) return -1;
+
+  do{
+    printf("debut fonction cur=%d\n", cur);
+    
+    //On a trouve le TLV correspondant
+    //On le supprime !
+    if(cur == num){
+      typetlv = 1;
+      
+      rc = write(fd, &typetlv, TYPE_SIZE);
+      if(rc < 0){
+	perror("write:supprime_tlv_aux()");
+	return ERROR_WRITE_DAZI;
+      }      
+      printf("Le TLV a ete supprimé !\n");
+      break;
+    }
+    
+    //On lit le type du TLV
+    rc = read(fd, &typetlv, TYPE_SIZE);
+    if(rc < 0){
+      perror("read:supprime_tlv_aux()");
+      return rc;
+    }
+    printf("typetlv=%d\n", typetlv);
+
+    //Test du Pad1 qui est sur un seul octet
+    if (typetlv == TYPE_PAD1) continue;
+    
+    
+
+    //on lit le champ length puis on
+    //avance de 3 octets
+    length = recupere_length(fd);
+    if(length < 0){
+      printf("Erreur:supprime_tlv_aux():recupere_length()");
+      return length;
+    }
+    printf("length=%d\n", length);
+
+    //On verifie si le TLV est un dated
+    if(typetlv == 6){
+      rc = lseek(fd, DATE_SIZE, SEEK_CUR);
+      if(rc < 0){
+	perror("lseek:supprime_tlv_aux()");
+	return ERROR_SEEK_DAZI;
+      }
+      printf("champ date, nouvel offset=%d\n", rc);
+      //On ne passe pas les donnees
+      //dans le dated, on refait un tour de 
+      //boucle pour pouvoir les lire
+      /*
+      cur++;
+      continue;
+      */
+    }
+    //Type Compound
+    if(typetlv == 5){
+      //Meme principe que pour le dated
+      /*
+      cur++;
+      continue;
+      */
+    }
+
+
+    //On passe les donnees du TLV en question
+    printf("length 2=%d\n", length);
+    rc = lseek(fd, length, SEEK_CUR);
+    if(rc < 0){
+      perror("lseek:supprime_tlv_aux()");
+      return ERROR_SEEK_DAZI;
+    }
+    printf("nouvel offset=%d\n", rc);
+    
+    cur++;
+    //Tant qu'il reste des donnees a lire
+  }while(0 < rc);
+
+  return 0;
+}
+
+int supprime_tlv(char * dazibao, int num){
+  int fd, rc;
+  
+  //On ouvre le fichier
+  fd = open(dazibao, O_RDWR);
+  if(fd < 0){
+    perror("open:supprime_tlv()");
+    return errno;
+  }
+  //On passe l'entete du dazibao
+  rc = lseek(fd, HEADER_SIZE, SEEK_SET);
+  if(rc < 0){
+    perror("lseek:supprime_tlv()");
+    return errno;
+  }  
+  
+  //On appelle la fonction qui va
+  //transformer le TLV en PadN
+  rc = supprime_tlv_aux(fd, num);
+  if(rc < 0){
+    printf("Erreur:supprime_tlv()\n");
+    return rc;
+  }
+
+  return 0;
+}
