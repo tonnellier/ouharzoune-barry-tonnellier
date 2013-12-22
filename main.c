@@ -129,11 +129,6 @@ void menu_modif_dazibao(char * dazibao){
 
     }
     
-    /* TODO 2
-       recuperer le choix
-    */
-  
-
     /* TODO 4
        a faire les fonctionnalités :
        1 - afficher le dazibao

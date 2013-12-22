@@ -5,5 +5,5 @@ modif-dazibao.o: modif-dazibao.c
 	gcc -c modif-dazibao.c -Wall
 
 clean:
-	rm main
+	rm mdazi
 	rm modif-dazibao.o
