@@ -38,3 +38,11 @@ void menu_modif_dazibao(char * dazibao);
   selectionné
 */
 void affiche_menu_modif_dazibao(char * dazibao);
+
+
+/*
+  Recupere un entier a partir d'une chaine de caracteres
+  lue en ligne de commande
+ */
+
+int lire_entier();

@@ -42,6 +42,30 @@ int recupere_choix_menu(int nb_choix){
   return choix_fichier;
 }
 
+
+int lire_entier(){
+  
+  char str[TAILLE_CHOIX];
+  int rc;
+  
+  
+  rc = scanf("%s", str);
+  
+  if(rc <= 0){
+    perror("scanf()");
+    return errno;
+  }
+  
+  rc = atoi(str); 
+ 
+  if(rc == 0){
+    printf("chaine=\"%s\" incorrecte\n", str);
+  }
+ 
+  return rc;
+}
+
+
 void affiche_menu_modif_dazibao(char * dazibao){
   int i = 0;
   int dazibaolen = (int)strlen(dazibao);
@@ -53,11 +77,11 @@ void affiche_menu_modif_dazibao(char * dazibao){
     printf("*");
   printf("\n");
   printf("1 - afficher le dazibao\n");
-  /*
-  printf("2 - ajouter un TLV\n");
+  
+  //printf("2 - ajouter un TLV\n");
   printf("3 - supprimer un TLV\n");
-  printf("4 - compacter le dazibao\n");
-  */
+  //printf("4 - compacter le dazibao\n");
+  
   printf("q - quitter pour le menu précédent\n");
   printf("******************************************\n");
 }
@@ -65,7 +89,9 @@ void affiche_menu_modif_dazibao(char * dazibao){
    Deuxieme gros menu a finir
  */
 void menu_modif_dazibao(char * dazibao){
-  int choix, nbopt=1;
+  int choix, rc,num;
+  //nombre d'options de modification d'un dazibao
+  int nbopt = 3;
   
   while(1){
     affiche_menu_modif_dazibao(dazibao);
@@ -78,8 +104,25 @@ void menu_modif_dazibao(char * dazibao){
     case 1: {
 	affiche_dazibao(dazibao);
     }
-	break;
-	
+      break;
+
+    case 2: {
+      printf("AJOUT non implémenté\n");
+      //------------------------AJOUT------
+    }
+      break;
+    case 3: {
+      printf("Entrer le numero du TLV a supprimer !\n");
+      num = lire_entier();
+      rc = supprime_tlv(dazibao, num);
+      printf("supprime_tlv(%s, %d)=%d\n", dazibao,num, rc);
+      if(rc < 0){
+	printf("Erreur:menu_modif_dazibao()\n");
+      }
+      
+    }
+      break; 
+
     default: {
       printf("Mauvais choix\n");
     }
