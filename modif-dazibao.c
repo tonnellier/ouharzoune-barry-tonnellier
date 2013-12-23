@@ -344,12 +344,40 @@ void affiche_dazibao(char * dazibao){
 }
 
 
-int supprime_tlv_aux(int fd, int num){
-  int rc, length, cur = 1;
+int supprime_tlv_aux(int fd, int tailledonnees, int num){
+  int rc, length, cur = 1, i=0;
   unsigned char typetlv;
 
+  if (num < cur){
+    printf("numero de TLV incorrect num=%d\n", num);
+    return -1;
+  }
+
   //On passe tous les TLVs qui précèdent celui a supprimer
-  while(cur < num){
+  while(i < tailledonnees){
+    
+    //Cas du bon TLV a supprimer
+    if(cur == num){
+      //Verfier l'endroit ou l'on est.
+      rc = lseek(fd, 0,SEEK_CUR);
+      if(rc < 0){
+	perror("lseek");
+	return ERROR_SEEK_DAZI;
+      }
+      printf("offset debut du TLV a supprimer=%x\n", rc);
+    
+      typetlv = 1;
+      //On le remplace par un PaDN
+      rc = write(fd, &typetlv, TYPE_SIZE);
+      if(rc < 0){
+	perror("write:supprime_tlv_aux()");
+	return ERROR_WRITE_DAZI;
+      }
+     
+      printf("Le TLV a ete supprimé !\n");
+      
+      return 0;
+    }
 
     //On lit le type du TLV
     rc = read(fd, &typetlv, TYPE_SIZE);
@@ -357,6 +385,8 @@ int supprime_tlv_aux(int fd, int num){
       perror("read:supprime_tlv_aux()");
       return rc;
     }
+    i += TYPE_SIZE;
+
     printf("typetlv=%d\n", typetlv);
 
      //Test du Pad1 qui est sur un seul octet
@@ -369,17 +399,27 @@ int supprime_tlv_aux(int fd, int num){
       printf("Erreur:supprime_tlv_aux():recupere_length()");
       return length;
     }
+    i+= LENGTH_SIZE;
+    //------------------------
+
     printf("length=%d\n", length);
     
+    //Cas du compound
+    if(typetlv == 5){
+      
+      cur++;
+      continue;
+    }
+    
 
-
+    //Cas du dated
     if(typetlv == 6){
       rc = lseek(fd, DATE_SIZE, SEEK_CUR);
       if(rc < 0){
 	perror("lseek:supprime_tlv_aux()");
 	return ERROR_SEEK_DAZI;
       }
-      
+      i+= DATE_SIZE;
 
       //On ne passe pas les donnees
       //dans le dated, on refait un tour de 
@@ -389,6 +429,7 @@ int supprime_tlv_aux(int fd, int num){
       continue;
       
     }
+    
 
 
     //On passe les donnees du TLV en question
@@ -397,33 +438,27 @@ int supprime_tlv_aux(int fd, int num){
       perror("lseek:supprime_tlv_aux()");
       return ERROR_SEEK_DAZI;
     }
+    //ATTENTION au cas 5 et 6
+    i+=length;
+    
     printf("nouvel offset a la fin du TLV=%d\n\n", rc);
-
+    
     cur++;
+
   }//fin while
   
-
-  //On tombe finalement sur le bon TLV a supprimer
-  if(cur == num){
-      typetlv = 1;
-      //On le remplace par un PaDN
-      rc = write(fd, &typetlv, TYPE_SIZE);
-      if(rc < 0){
-	perror("write:supprime_tlv_aux()");
-	return ERROR_WRITE_DAZI;
-      }
-      printf("Le TLV a ete supprimé !\n");
-  }else{
-    printf("Erreur d'indice dans supprime_tlv()\n");
-    return -1;
-  }
-
-  return 0;
+  
+  
+  
+  
+  printf("Le TLV numero=%d n'a pas ete modifie,", num);
+  printf("il n'existe peut etre pas\n");
+  return -1;
 }
 
 
 int supprime_tlv(char * dazibao, int num){
-  int fd, rc;
+  int fd, rc, tailledonnees;
   
   //On ouvre le fichier
   fd = open(dazibao, O_RDWR);
@@ -431,6 +466,13 @@ int supprime_tlv(char * dazibao, int num){
     perror("open:supprime_tlv()");
     return errno;
   }
+  tailledonnees = lseek(fd, 0, SEEK_END);
+  if(tailledonnees < 0){
+    perror("lseek:affiche_tlv()");
+    return ERROR_SEEK_DAZI;
+  }
+  tailledonnees -= HEADER_SIZE;
+
   //On passe l'entete du dazibao
   rc = lseek(fd, HEADER_SIZE, SEEK_SET);
   if(rc < 0){
@@ -440,7 +482,7 @@ int supprime_tlv(char * dazibao, int num){
   
   //On appelle la fonction qui va
   //transformer le TLV en PadN
-  rc = supprime_tlv_aux(fd, num);
+  rc = supprime_tlv_aux(fd, tailledonnees, num);
   if(rc < 0){
     printf("Erreur:supprime_tlv()\n");
     return rc;

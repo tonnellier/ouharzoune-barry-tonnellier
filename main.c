@@ -52,14 +52,14 @@ int lire_entier(){
   rc = scanf("%s", str);
   
   if(rc <= 0){
-    perror("scanf()");
+    perror("scanf");
     return errno;
   }
   
   rc = atoi(str); 
  
   if(rc == 0){
-    printf("chaine=\"%s\" incorrecte\n", str);
+    printf("chaine=\"%s\" incorrecte (on doit commencer a 1)\n", str);
   }
  
   return rc;
@@ -115,7 +115,7 @@ void menu_modif_dazibao(char * dazibao){
       printf("Entrer le numero du TLV a supprimer !\n");
       num = lire_entier();
       rc = supprime_tlv(dazibao, num);
-      printf("supprime_tlv(%s, %d)=%d\n", dazibao,num, rc);
+      printf("supprime_tlv(%s,%d)=%d\n", dazibao, num, rc);
       if(rc < 0){
 	printf("Erreur:menu_modif_dazibao()\n");
       }

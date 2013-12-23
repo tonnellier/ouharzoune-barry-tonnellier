@@ -81,4 +81,4 @@ int supprime_tlv(char * dazibao, int num);
    Supprime un tlv a la position <num>
    Renvoie 0 si tout va bien
  */
-int supprime_tlv_aux(int fd, int num);
+int supprime_tlv_aux(int fd, int tailledonnees, int num);
