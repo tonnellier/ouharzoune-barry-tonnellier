@@ -172,7 +172,8 @@ int affiche_tlv(int fd, int tailledonnees, int num){
     //Le champ length et autres n'exitent pas
     //Donc on sautes ces etapes
     if (typetlv == TYPE_PAD1) {
-      printf("TLV%d type: Pad1\n", num);
+      printf("TLV%d type: Pad1, length=1\n", num);
+      num++;
       continue;
     }
 
@@ -359,14 +360,25 @@ int supprime_tlv_aux(int fd, int tailledonnees, int num){
     
     //Cas du bon TLV a supprimer
     if(cur == num){
-      //Verfier l'endroit ou l'on est.
-      rc = lseek(fd, 0,SEEK_CUR);
+      
+      rc = read(fd, &typetlv, TYPE_SIZE);
+      if(rc < 0){
+	perror("read:supprime_tlv_aux()");
+	return ERROR_READ_DAZI;
+      }
+      //Cas Pad1 (on laisse tel quel)
+      if(typetlv == 0) return 0;
+
+      //Sinon on transforme le TLV en PadN.
+      rc = lseek(fd, -TYPE_SIZE,SEEK_CUR);
       if(rc < 0){
 	perror("lseek");
 	return ERROR_SEEK_DAZI;
       }
       printf("offset debut du TLV a supprimer=%x\n", rc);
-    
+      
+      
+
       typetlv = 1;
       //On le remplace par un PaDN
       rc = write(fd, &typetlv, TYPE_SIZE);
@@ -391,8 +403,10 @@ int supprime_tlv_aux(int fd, int tailledonnees, int num){
     printf("typetlv=%d\n", typetlv);
 
      //Test du Pad1 qui est sur un seul octet
-    if (typetlv == TYPE_PAD1) continue;
-
+    if (typetlv == TYPE_PAD1) {
+      cur ++;
+      continue;
+    }
     //on lit le champ length puis on
     //avance de 3 octets
     length = recupere_length(fd);
@@ -510,8 +524,12 @@ unsigned char * int_to_char4(unsigned int entier){
   return char4;
 }
 
-int ajoute_tlv(char * dazibao, unsigned char typetlv, int length, char * fichierdonnees){
-  int fd, fd2, ecrits, lus, cpt_donnees = 0, rc;
+int ajoute_tlv(char * dazibao, unsigned char typetlv, int length, 
+	       char * fichierdonnees){
+
+  int fd,  ecrits,  cpt_donnees = 0;
+  int fd2, lus;
+  int rc;
   unsigned char * len3;
   char buf[BUF_LEN_CPY];
   
@@ -522,33 +540,57 @@ int ajoute_tlv(char * dazibao, unsigned char typetlv, int length, char * fichier
     return ERROR_READ_DAZI;
   }
 
-  //On ecrit le type du TLV
-  ecrits = write(fd, &typetlv, TYPE_SIZE);
-  if(ecrits < 0){
-    perror("write:ajoute_tlv()");
-    return ERROR_WRITE_DAZI;
-  }
-  if(typetlv == 0) return 0;
+  switch(typetlv){
   
-  //On écrit la taille du TLV
-  //On met l'entier length dans un buffer (len3)
-  len3 = int_to_char4(length);
-  if(len3 == NULL){
-    return -1;
-  }
-  //On avance d'un octets pour avoir le buffer len3 sur 3 octets
-  //au lieu de 4
-  len3++;
-  //On ecrit la taille
-  ecrits = write(fd, len3, LENGTH_SIZE);
-  if(ecrits < 0){
-    perror("write:ajoute_tlv()");
-    return errno;
-  } 
-  //Cas du PadN
-  if(typetlv == 1){
+
+
+
+    //Pad1
+  case 0: {
+    //On ecrit le type du TLV
+    ecrits = write(fd, &typetlv, TYPE_SIZE);
+    if(ecrits < 0){
+      perror("write:ajoute_tlv()");
+      return ERROR_WRITE_DAZI;
+    }
+  }break;
+
+
+
+
+
+    //PadN
+  case 1: {
+    //On ecrit le type du TLV
+    ecrits = write(fd, &typetlv, TYPE_SIZE);
+    if(ecrits < 0){
+      perror("write:ajoute_tlv()");
+      return ERROR_WRITE_DAZI;
+    }
+
+    //On écrit la taille du PadN
+
+    //On met l'entier length dans un buffer (len3)
+    len3 = int_to_char4(length);
+    if(len3 == NULL){
+      return -1;
+    }
+    //On avance d'un octets pour avoir le buffer len3 sur 3 octets
+    //au lieu de 4
+    len3++;
+    //On ecrit la taille
+    ecrits = write(fd, len3, LENGTH_SIZE);
+    if(ecrits < 0){
+      perror("write:ajoute_tlv()");
+      return errno;
+    } 
+
     cpt_donnees = length;
-    
+    //On ecrit des donnees au hasard afin de remplir le PadN
+    //Mais on le fait aussi pour tout autre TLV
+    //Car si l'on arrive pas a lire le fichier source de donnees
+    //On aura rempli le fichier avec des donnees de taille length
+    //Et on laissera le TLV en PadN
     do{
       if(cpt_donnees < BUF_LEN_CPY)
 	ecrits = write(fd, buf, cpt_donnees);
@@ -561,70 +603,84 @@ int ajoute_tlv(char * dazibao, unsigned char typetlv, int length, char * fichier
       cpt_donnees -= ecrits;
 
     }while(0 < cpt_donnees);
-    return 0;
-  }
+    printf("Les donnees du PadN sont ecrites !\n");
+    
+  }break;
 
-  //On écrit les données du TLV
-  //On ouvre le second fichier source
-  fd2 = open(fichierdonnees, O_RDONLY);
-  if(fd2 < 0){
-    perror("open:ajoute_tlv()");
-    return errno;
-  }
-  
-  //Copie de fichierdonnees dans le TLV
-  do{
-    lus = read(fd2, buf, BUF_LEN_CPY);
-    if(lus < 0){
-      perror("read:ajoute_tlv()");
+
+
+
+
+    //autres TLVs
+  default: {
+    
+    //On ouvre le second fichier source d'abord
+    //Pour verifier que fichier existe
+    //et pour y recuperer sa taille
+    fd2 = open(fichierdonnees, O_RDONLY);
+    if(fd2 < 0){
+      perror("open:ajoute_tlv()");
       return errno;
     }
 
-    ecrits = write(fd, buf, lus);
+    
+    //On recupere sa taille
+    length = lseek(fd2, 0, SEEK_END);
+    if(length < 0){
+      perror("lseek:ajoute_tlv");
+      return errno;
+    }
+      
+    rc = lseek(fd2, 0, SEEK_SET);
+    if(rc < 0){
+      perror("lseek:ajoute_tlv");
+      return errno;
+    }
+    
+
+    //On commence l'ecriture
+
+    //On ecrit le type du TLV
+    ecrits = write(fd, &typetlv, TYPE_SIZE);
     if(ecrits < 0){
       perror("write:ajoute_tlv()");
-      return errno;
+      return ERROR_WRITE_DAZI;
     }
-    cpt_donnees += ecrits;
 
-  }while(0 < lus && cpt_donnees < length);
-  
-  if(cpt_donnees != length){
-    
-    printf("length=%d donnée ne correspond pas a la taille du fichier=%s\n", length, fichierdonnees);
-    printf("Nous allons reecrire la bonne length !\n");
-    
-    rc = lseek(fd, -(cpt_donnees+LENGTH_SIZE), SEEK_CUR);
-    if(rc < 0){
-      perror("lseek:ajout_tlv()");
-      return errno;
-    }
-    printf("rc=%d\n", rc);
-    len3--;
-    len3 = int_to_char4(cpt_donnees);
+    //On met l'entier length dans un buffer (len3)
+    len3 = int_to_char4(length);
     if(len3 == NULL){
       return -1;
     }
     //On avance d'un octets pour avoir le buffer len3 sur 3 octets
     //au lieu de 4
+    len3++;
 
-    //ATTENTION !!!
-    //len3++;
-    
     //On ecrit la taille
-
-    //-----------------ON ecrit les DONNEES a lfin PAS BOOOO
-    //6666666666666666666666666-----------------AAHAHAHHAHHAHAHAHAHHHAHAHHHAHAHHAHAHHAAHAHAHHAH
-    printf("len3-new=%s\n", len3);
     ecrits = write(fd, len3, LENGTH_SIZE);
     if(ecrits < 0){
       perror("write:ajoute_tlv()");
       return errno;
-    }
-    //A cause du O_APPEND peut etre...
-    //-----------------ON ecrit les DONNEES a lfin PAS BOOOO
-    //6666666666666666666666666-----------------AAHAHAHHAHHAHAHAHAHHHAHAHHHAHAHHAHAHHAAHAHAHHAH
+    } 
+    
+    //Copie de fichierdonnees dans le TLV
+    do{
+      lus = read(fd2, buf, BUF_LEN_CPY);
+      if(lus < 0){
+	perror("read:ajoute_tlv()");
+	return errno;
+      }
+
+      ecrits = write(fd, buf, lus);
+      if(ecrits < 0){
+	perror("write:ajoute_tlv()");
+	return errno;
+      }
+    }while(0 < lus);
+
   }
+
+  }//fin switch
 
   return 0;
 }

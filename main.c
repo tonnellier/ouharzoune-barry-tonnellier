@@ -67,7 +67,7 @@ int lire_entier(){
   rc = atoi(str); 
  
   if(rc == 0){
-    printf("chaine=\"%s\" incorrecte (on doit commencer a 1)\n", str);
+    printf("chaine=\"%s\"\n", str);
   }
  
   return rc;
@@ -122,18 +122,25 @@ void menu_modif_dazibao(char * dazibao){
       printf("Entrez le numero de type du TLV !\n");
       typetlv = (unsigned char)lire_entier();
 
-      //length TLV
-      printf("Entrez la taille length du TLV !\n");
-      length = lire_entier();
-      if(length <= 0){
-	printf("Erreur:affiche_tlv():length negatif ou nul\n");
-	continue;
-      }
-      //nom de fichier de donnees
-      printf("Entrez le nom du fichier de donnees a mettre dans le TLV !\n");
-      fichierdonnees = lire_string();
-      if(fichierdonnees == NULL){
-	continue;
+      
+      if(0 < typetlv){
+	if(typetlv == 1){
+	  //length PadN
+	  printf("Entrez la taille length du PadN!\n");
+	  length = lire_entier();
+	  if(length < 0){
+	    printf("Erreur:affiche_tlv():length negatif ou nul\n");
+	    continue;
+	  }
+	  //Cas des autres TLV
+	}else{
+	  //nom de fichier de donnees
+	  printf("Entrez le nom du fichier de donnees a mettre dans le TLV !\n");
+	  fichierdonnees = lire_string();
+	  if(fichierdonnees == NULL){
+	    continue;
+	  }
+	}
       }
       printf("typetlv=%d, length=%d, fichierdonnees=%s\n", typetlv, length, fichierdonnees);
       
