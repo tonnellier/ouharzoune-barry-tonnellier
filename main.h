@@ -46,3 +46,9 @@ void affiche_menu_modif_dazibao(char * dazibao);
  */
 
 int lire_entier();
+
+/*
+  Permet de recuperer une chaine de caractere 
+  entree en ligne de commande
+ */
+char * lire_string();

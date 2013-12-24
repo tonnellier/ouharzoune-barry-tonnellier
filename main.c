@@ -42,20 +42,28 @@ int recupere_choix_menu(int nb_choix){
   return choix_fichier;
 }
 
+char * lire_string(){
+  int rc;
+  char * str = (char *)malloc(sizeof(char) * TAILLE_CHOIX);
+ 
+  rc = scanf("%s", str);
+  if(rc == 0){
+    perror("scanf:lire_string()");
+    return NULL;
+  }
+  return str;
+}
 
 int lire_entier(){
   
-  char str[TAILLE_CHOIX];
+  char * str;
   int rc;
   
-  
-  rc = scanf("%s", str);
-  
-  if(rc <= 0){
-    perror("scanf");
-    return errno;
+  str = lire_string();
+  if(str == NULL){
+    return -1;
   }
-  
+
   rc = atoi(str); 
  
   if(rc == 0){
@@ -78,7 +86,7 @@ void affiche_menu_modif_dazibao(char * dazibao){
   printf("\n");
   printf("1 - afficher le dazibao\n");
   
-  //printf("2 - ajouter un TLV\n");
+  printf("2 - ajouter un TLV\n");
   printf("3 - supprimer un TLV\n");
   //printf("4 - compacter le dazibao\n");
   
@@ -89,7 +97,9 @@ void affiche_menu_modif_dazibao(char * dazibao){
    Deuxieme gros menu a finir
  */
 void menu_modif_dazibao(char * dazibao){
-  int choix, rc,num;
+  int choix, rc, num, length;
+  unsigned char typetlv;
+  char * fichierdonnees;
   //nombre d'options de modification d'un dazibao
   int nbopt = 3;
   
@@ -103,14 +113,41 @@ void menu_modif_dazibao(char * dazibao){
 
     case 1: {
 	affiche_dazibao(dazibao);
-    }
-      break;
+    }      break;
+
 
     case 2: {
-      printf("AJOUT non implémenté\n");
       //------------------------AJOUT------
-    }
-      break;
+      //type TLV
+      printf("Entrez le numero de type du TLV !\n");
+      typetlv = (unsigned char)lire_entier();
+
+      //length TLV
+      printf("Entrez la taille length du TLV !\n");
+      length = lire_entier();
+      if(length <= 0){
+	printf("Erreur:affiche_tlv():length negatif ou nul\n");
+	continue;
+      }
+      //nom de fichier de donnees
+      printf("Entrez le nom du fichier de donnees a mettre dans le TLV !\n");
+      fichierdonnees = lire_string();
+      if(fichierdonnees == NULL){
+	continue;
+      }
+      printf("typetlv=%d, length=%d, fichierdonnees=%s\n", typetlv, length, fichierdonnees);
+      
+      //On ajoute le TLV
+      rc = ajoute_tlv(dazibao, typetlv, length, fichierdonnees);
+      if(rc < 0){
+	printf("Erreur:ajoute_tlv()\n");
+      }
+      printf("L'ajout du TLV s'est bien passee\n");
+      
+      //------------------------AJOUT------
+    }break;
+    
+
     case 3: {
       printf("Entrer le numero du TLV a supprimer !\n");
       num = lire_entier();
@@ -120,8 +157,7 @@ void menu_modif_dazibao(char * dazibao){
 	printf("Erreur:menu_modif_dazibao()\n");
       }
       
-    }
-      break; 
+    }break; 
 
     default: {
       printf("Mauvais choix\n");
@@ -129,15 +165,8 @@ void menu_modif_dazibao(char * dazibao){
 
     }
     
-    /* TODO 4
-       a faire les fonctionnalités :
-       1 - afficher le dazibao
-       2 - ajouter un TLV
-       3 - supprimer un TLV
-       4 - compacter le dazibao
-       q - quitter
-    */
   }
+
   return;
 }
 

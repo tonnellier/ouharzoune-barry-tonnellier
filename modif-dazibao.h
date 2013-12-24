@@ -82,3 +82,19 @@ int supprime_tlv(char * dazibao, int num);
    Renvoie 0 si tout va bien
  */
 int supprime_tlv_aux(int fd, int tailledonnees, int num);
+
+
+/*
+  Renvoie la representation d'un entier positif sous forme 
+  de buffer a 4 caractere.
+  En cas d'erreur du malloc, renvoie NULL
+*/
+unsigned char * int_to_char4(unsigned int entier);
+
+
+/*
+  Ajoute un TLV à la fin du fichier dazibao
+  Renvoie 0 si tout va bien
+  Sinon entier negatif
+ */
+int ajoute_tlv(char * dazibao, unsigned char typetlv, int length, char * fichierdonnees);
