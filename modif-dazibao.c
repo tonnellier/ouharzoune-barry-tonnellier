@@ -172,7 +172,7 @@ int affiche_tlv(int fd, int tailledonnees, int num){
     //Le champ length et autres n'exitent pas
     //Donc on sautes ces etapes
     if (typetlv == TYPE_PAD1) {
-      printf("TLV%d type: Pad1, length=1\n", num);
+      printf("TLV%d type: Pad1, length: 0\n", num);
       num++;
       continue;
     }
@@ -682,5 +682,109 @@ int ajoute_tlv(char * dazibao, unsigned char typetlv, int length,
 
   }//fin switch
 
+  return 0;
+}
+
+int compacte(char * dazibao){
+  /*
+  int fd_read, fd_write, lus, ecrits, length, lus2, rc, cpt_donnees;
+  char typetlv;
+  char buf[BUF_LEN_CPY];
+  unsigned char * len3;
+
+  fd_read = open(dazibao, O_RDONLY);
+  if(fd_read < 0){
+    perror("read:compacte()");
+    return ERROR_READ_DAZI;
+  }
+
+  fd_write = open(dazibao, O_WRONLY | O_NONBLOCK);
+  if(fd_write < 0){
+    perror("read:compacte()");
+    return ERROR_READ_DAZI;
+  }
+
+  do{
+    //lire le type du tlv
+    lus = read(fd_read, &typetlv, TYPE_SIZE);
+    if(lus < 0){
+      perror("read:compacte()");
+      return ERROR_READ_DAZI;
+    }
+
+    //On ignore les donnees du Pad1
+    if(typetlv == 0) continue;
+    
+    length = recupere_length(fd_read);
+    if(length < 0){
+      printf("Erreur:compacte():length\n");
+      return length;
+    }
+    
+    //On ignore les donnees du PadN
+    if(typetlv == 1){    
+
+      rc = lseek(fd_read, length, SEEK_CUR);
+      if(rc < 0){
+	perror("lseek:compacte()");
+	return errno;
+      }
+      continue;
+    }
+
+
+    //Pour tout autre TLV, on effectue la copie
+
+    //On copie le type du TLV
+    ecrits = write(fd_write, &typetlv, TYPE_SIZE);
+    if(ecrits < 0){
+      perror("write:compacte()");
+      return ERROR_WRITE_DAZI;
+    }
+    
+    //On met l'entier length dans un buffer (len3)
+    len3 = int_to_char4(length);
+    if(len3 == NULL){
+      return -1;
+    }
+    //On avance d'un octets pour avoir le buffer len3 sur 3 octets
+    //au lieu de 4
+    len3++;
+    //On ecrit la taille
+    ecrits = write(fd_write, len3, LENGTH_SIZE);
+    if(ecrits < 0){
+      perror("write:ajoute_tlv()");
+      return errno;
+    } 
+
+    cpt_donnees = length;
+
+    //On copie les donnees du TLV
+    do{
+      
+      if(BUF_LEN_CPY < cpt_donnees)
+	lus2 = read(fd_read, buf, BUF_LEN_CPY);
+      else
+	lus2 = read(fd_read, buf, cpt_donnees);
+      if(lus2 < 0){
+	perror("read:compacte()");
+	return ERROR_READ_DAZI;
+      }
+      cpt_donnees -= lus2;
+
+      ecrits = write(fd_write, buf, lus2);
+      if(ecrits < 0){
+	perror("write:compacte()");
+	return ERROR_WRITE_DAZI;
+      }
+      
+      }while(0 < cpt_donnees);
+
+  }while(0 < lus);
+
+  close(fd_read);
+  close(fd_write);
+}
+  */
   return 0;
 }

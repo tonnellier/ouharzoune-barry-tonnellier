@@ -88,7 +88,7 @@ void affiche_menu_modif_dazibao(char * dazibao){
   
   printf("2 - ajouter un TLV\n");
   printf("3 - supprimer un TLV\n");
-  //printf("4 - compacter le dazibao\n");
+  printf("4 - compacter le dazibao\n");
   
   printf("q - quitter pour le menu précédent\n");
   printf("******************************************\n");
@@ -101,7 +101,7 @@ void menu_modif_dazibao(char * dazibao){
   unsigned char typetlv;
   char * fichierdonnees;
   //nombre d'options de modification d'un dazibao
-  int nbopt = 3;
+  int nbopt = 4;
   
   while(1){
     affiche_menu_modif_dazibao(dazibao);
@@ -117,13 +117,13 @@ void menu_modif_dazibao(char * dazibao){
 
 
     case 2: {
-      //------------------------AJOUT------
       //type TLV
       printf("Entrez le numero de type du TLV !\n");
       typetlv = (unsigned char)lire_entier();
 
       
       if(0 < typetlv){
+	//Pour le PadN on recupere juste sa length
 	if(typetlv == 1){
 	  //length PadN
 	  printf("Entrez la taille length du PadN!\n");
@@ -132,7 +132,8 @@ void menu_modif_dazibao(char * dazibao){
 	    printf("Erreur:affiche_tlv():length negatif ou nul\n");
 	    continue;
 	  }
-	  //Cas des autres TLV
+	  //Cas des autres TLV, on recupere
+	  //les donnees a partir d'un fichier
 	}else{
 	  //nom de fichier de donnees
 	  printf("Entrez le nom du fichier de donnees a mettre dans le TLV !\n");
@@ -142,7 +143,8 @@ void menu_modif_dazibao(char * dazibao){
 	  }
 	}
       }
-      printf("typetlv=%d, length=%d, fichierdonnees=%s\n", typetlv, length, fichierdonnees);
+      printf("typetlv=%d, length=%d, fichierdonnees=%s\n", typetlv, 
+	     length, fichierdonnees);
       
       //On ajoute le TLV
       rc = ajoute_tlv(dazibao, typetlv, length, fichierdonnees);
@@ -151,7 +153,6 @@ void menu_modif_dazibao(char * dazibao){
       }
       printf("L'ajout du TLV s'est bien passee\n");
       
-      //------------------------AJOUT------
     }break;
     
 
@@ -165,6 +166,15 @@ void menu_modif_dazibao(char * dazibao){
       }
       
     }break; 
+
+    case 4: {
+      //--------------------Compaction
+      rc = compacte(dazibao);
+      if(rc < 0){
+	printf("Erreur:compacte()\n");
+      }
+      //-------------------fin-Compaction
+    }break;
 
     default: {
       printf("Mauvais choix\n");

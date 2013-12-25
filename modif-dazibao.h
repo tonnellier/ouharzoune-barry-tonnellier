@@ -98,3 +98,11 @@ unsigned char * int_to_char4(unsigned int entier);
   Sinon entier negatif
  */
 int ajoute_tlv(char * dazibao, unsigned char typetlv, int length, char * fichierdonnees);
+
+/*
+  Reecrit le dazibao en supprimant les Pad1 et PadN
+  afin de compacter les donnees
+  Revoie 0 si tout va bien 
+  Sinon un entier negatif
+*/
+int compacte(char * dazibao);
