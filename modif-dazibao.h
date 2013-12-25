@@ -35,6 +35,13 @@ int affiche_texte(int fd, int length); //TEST OK - REMAIN
 */
 int recupere_length(int fd); // TEST OK
 
+/*
+  interprete un entier a partir d'un tableau d'une taille max 
+  de 4 unsigned char
+  Renvoie l'entier si tout va bien
+*/
+int recupere_length2(char * buf);
+
 
 /* Lit la date d'un TLV de type dated.
    Renvoie un entier positif pour la date

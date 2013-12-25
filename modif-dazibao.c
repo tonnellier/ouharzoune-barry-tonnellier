@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/wait.h>
+
 #include "norme.h"
 #include "modif-dazibao.h"
 
@@ -134,6 +136,20 @@ int recupere_length(int fd){
       return ERROR_READ_DAZI;
     }
   }
+  return length;
+}
+
+int recupere_length2(char * buf){
+  int length = 0;
+  int i;
+
+  for(i = 0; i < LENGTH_SIZE; i++){
+    length = length << 8;
+    //printf("length=%d\n", length);
+//printf("buf[%d]=%d\n", i, buf[i]);
+    length += buf[i];
+  }
+
   return length;
 }
 
@@ -686,105 +702,154 @@ int ajoute_tlv(char * dazibao, unsigned char typetlv, int length,
 }
 
 int compacte(char * dazibao){
-  /*
-  int fd_read, fd_write, lus, ecrits, length, lus2, rc, cpt_donnees;
-  char typetlv;
-  char buf[BUF_LEN_CPY];
-  unsigned char * len3;
-
-  fd_read = open(dazibao, O_RDONLY);
-  if(fd_read < 0){
+  int fdsrc;
+  int fddest;
+  int lus;
+  int ecrits;
+  int fourche;
+  int restypetlv;
+  int reslseek;
+  unsigned char typetlv;
+  int reslength;
+  int length;
+  char buf[BUF_LEN_CPY] = {0};
+  int i;
+  const char * tmp = "2h3u2i4l7j3Q8r6h3bk1.dzb.tmp";
+  /*const char * path = "/bin/mv";
+  const char * mv = "mv";
+  const char * jerome = "jerome.dzb";
+*/
+  //Ouverture du fichier source
+  fdsrc = open(dazibao, O_RDONLY);
+  if(fdsrc < 0){
     perror("read:compacte()");
     return ERROR_READ_DAZI;
   }
+  
+  //Ouverture du fichier de destination avec un nom bizarre
+  fddest = open(tmp, O_CREAT|O_TRUNC|O_WRONLY, 0666);
+  if(fddest < 0){
+    perror("open:compacte():erreur fichier dest");
+    return errno;
+  }
+  
 
-  fd_write = open(dazibao, O_WRONLY | O_NONBLOCK);
-  if(fd_write < 0){
+  //On copie l'entete a partir du dazibao source
+  lus = read(fdsrc, buf, HEADER_SIZE);
+  if(lus < 0){
     perror("read:compacte()");
     return ERROR_READ_DAZI;
   }
+  for(i = 0; i < BUF_LEN_CPY; i++)
+    printf("buf=%c ", buf[i]);//////////////////////////////////////////
 
-  do{
-    //lire le type du tlv
-    lus = read(fd_read, &typetlv, TYPE_SIZE);
-    if(lus < 0){
-      perror("read:compacte()");
+  //On ecrit l'entete dans le fichier dazibao temporaire
+  ecrits = write(fddest, buf, lus);
+  if(ecrits < 0){
+    perror("write:compacte()");
+    return ERROR_WRITE_DAZI;
+  }
+  
+
+  //Chaque tour de boucle correspond a 
+  //la lecture d'un seul TLV
+  //do{
+    
+    //On lit le type du TLV
+    restypetlv = read(fdsrc, &typetlv, TYPE_SIZE);
+    if(restypetlv < 0){
+      perror("read:compacte()1");
       return ERROR_READ_DAZI;
     }
 
-    //On ignore les donnees du Pad1
-    if(typetlv == 0) continue;
-    
-    length = recupere_length(fd_read);
-    if(length < 0){
-      printf("Erreur:compacte():length\n");
-      return length;
+    printf("buf=%s\n", buf);///////////////////////////////////////////
+
+    //Cas du Pad1, on l ignore 
+    if(typetlv == 0) /////////////////////////////////////////////////continue;
+
+    //On lit la la taille du TLV
+      //printf("%s\n", buf);
+    reslength = read(fdsrc, buf, LENGTH_SIZE);
+    if(reslength < 0){
+      perror("read:compacte()2");
+      return ERROR_READ_DAZI;
     }
     
-    //On ignore les donnees du PadN
-    if(typetlv == 1){    
+    printf("buf=%s\n", buf);///////////////////////////////////////////////
 
-      rc = lseek(fd_read, length, SEEK_CUR);
-      if(rc < 0){
-	perror("lseek:compacte()");
-	return errno;
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    //On l'interprete pour le mettre dans un int
+    length = recupere_length2(buf);
+    printf("typetlv=%d, length=%d, buf=%s\n", typetlv, length, buf);
+
+    //Cas du PadN
+    if(typetlv == 1){
+      //On ignore le PadN
+      reslseek = lseek(fdsrc, length, SEEK_CUR);
+      if(reslseek < 0){
+	perror("lseek");
+	return ERROR_SEEK_DAZI;
       }
-      continue;
+      /////////////////////////////////////////////////////continue;
     }
 
-
-    //Pour tout autre TLV, on effectue la copie
-
-    //On copie le type du TLV
-    ecrits = write(fd_write, &typetlv, TYPE_SIZE);
-    if(ecrits < 0){
+    //Tous les autres TLVs vont etre copies
+    
+    //On ecrit le type du TLV
+    restypetlv = write(fddest, &typetlv, TYPE_SIZE);
+    if(restypetlv < 0){
       perror("write:compacte()");
       return ERROR_WRITE_DAZI;
     }
-    
-    //On met l'entier length dans un buffer (len3)
-    len3 = int_to_char4(length);
-    if(len3 == NULL){
-      return -1;
-    }
-    //On avance d'un octets pour avoir le buffer len3 sur 3 octets
-    //au lieu de 4
-    len3++;
-    //On ecrit la taille
-    ecrits = write(fd_write, len3, LENGTH_SIZE);
-    if(ecrits < 0){
-      perror("write:ajoute_tlv()");
-      return errno;
-    } 
 
-    cpt_donnees = length;
+    //On ecrit la length du TLV
+    reslength = write(fddest, buf, LENGTH_SIZE);
+    if(reslength < 0){
+      perror("write");
+      return ERROR_WRITE_DAZI;
+    }
 
     //On copie les donnees du TLV
     do{
       
-      if(BUF_LEN_CPY < cpt_donnees)
-	lus2 = read(fd_read, buf, BUF_LEN_CPY);
+      if(length < BUF_LEN_CPY)	
+	lus = read(fdsrc, buf, length);
       else
-	lus2 = read(fd_read, buf, cpt_donnees);
-      if(lus2 < 0){
+	lus = read(fdsrc, buf, BUF_LEN_CPY);
+      if(lus < 0){
 	perror("read:compacte()");
 	return ERROR_READ_DAZI;
       }
-      cpt_donnees -= lus2;
-
-      ecrits = write(fd_write, buf, lus2);
+      
+      ecrits = write(fddest, buf, lus);
       if(ecrits < 0){
 	perror("write:compacte()");
 	return ERROR_WRITE_DAZI;
       }
       
-      }while(0 < cpt_donnees);
+      //On compte les donnees lues afin de s'arreter
+      //au bon endroit dans le fichier
+      length -= lus;
 
-  }while(0 < lus);
+    }while(0 < lus);
 
-  close(fd_read);
-  close(fd_write);
-}
+    //}while(0 < restypetlv);
+  
+  //TODO:renommer le fichier temporaire
+  close(fdsrc);
+  close(fddest);
+  
+  //On creee un fils pour executer "mv" afin de changer de
+  //nom de fichier
+  /*
+  fourche = fork();
+  //fils
+  if(fourche == 0){
+    return execl(path, mv, tmp, jerome, NULL);
+  }//Pere
+  else{
+    wait(NULL);
+  }
   */
   return 0;
 }
