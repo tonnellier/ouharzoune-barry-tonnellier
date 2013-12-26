@@ -16,6 +16,7 @@
 #define ERROR_WRITE_DAZI -6
 #define ERROR_SEEK_DAZI -5
 #define ERROR_WRITE_TEXT -3
+#define ERROR_LOCK_FILE -7
 #define ERROR_UNKNOW -4
 #define EOF_DAZI -1
 #define BUF_LEN_TEXT 64
@@ -24,16 +25,24 @@
 /* TEST OK */
 int verifie_entete(char * dazibao){
   unsigned char head[HEADER_SIZE];
-  int fd, rc;
+  int fd, rc, verrou;
+  
   /* TODO
-    ajouter la pose d'un verrou flock    
-   */
+    ajouter la pose d'un verrou flock
+  */
 
   fd = open(dazibao, O_RDONLY);
   if(fd < 0){
     perror("open:verifie_entete()");
     close(fd);
     return fd;
+  }
+  
+  /* VERROU */
+  verrou = flock(fd, LOCK_EX);
+  if(verrou < 0){
+    perror("flock:verifie_entete()");
+    return ERROR_LOCK_FILE;
   }
 
   /* Lecture de l'entete */
@@ -60,6 +69,13 @@ int verifie_entete(char * dazibao){
       }
     }
     
+  }
+
+  /* VERROU */
+  verrou = flock(fd, LOCK_EX);
+  if(verrou < 0){
+    perror("flock:verifie_entete()");
+    return ERROR_LOCK_FILE;
   }
 
   close(fd);
