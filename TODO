@@ -1,8 +1,6 @@
--fonction compaction
 -verrous (vider les tampons avant de lacher le verrou + attention a 
 l'asynchronisme (msync))
 -notifications (sockets + verifier derniere date modif)
-
 
 
 -modif texte fichier

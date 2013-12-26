@@ -40,7 +40,7 @@ int recupere_length(int fd); // TEST OK
   de 4 unsigned char
   Renvoie l'entier si tout va bien
 */
-int recupere_length2(char * buf);
+int recupere_length2(unsigned char * buf);
 
 
 /* Lit la date d'un TLV de type dated.

@@ -139,14 +139,12 @@ int recupere_length(int fd){
   return length;
 }
 
-int recupere_length2(char * buf){
+int recupere_length2(unsigned char * buf){
   int length = 0;
   int i;
 
   for(i = 0; i < LENGTH_SIZE; i++){
-    length = length << 8;
-    //printf("length=%d\n", length);
-//printf("buf[%d]=%d\n", i, buf[i]);
+    length = length << 8;    
     length += buf[i];
   }
 
@@ -540,6 +538,7 @@ unsigned char * int_to_char4(unsigned int entier){
   return char4;
 }
 
+//On ajoute un seul TLV
 int ajoute_tlv(char * dazibao, unsigned char typetlv, int length, 
 	       char * fichierdonnees){
 
@@ -608,10 +607,11 @@ int ajoute_tlv(char * dazibao, unsigned char typetlv, int length,
     //On aura rempli le fichier avec des donnees de taille length
     //Et on laissera le TLV en PadN
     do{
-      if(cpt_donnees < BUF_LEN_CPY)
+      if(cpt_donnees < BUF_LEN_CPY){
 	ecrits = write(fd, buf, cpt_donnees);
-      else
+      }else{
 	ecrits = write(fd, buf, BUF_LEN_CPY);
+      }
       if(ecrits < 0){
 	perror("write:ajoute_tlv()");
 	return errno;
@@ -710,15 +710,14 @@ int compacte(char * dazibao){
   int restypetlv;
   int reslseek;
   unsigned char typetlv;
-  int reslength;
+  unsigned int reslength;
   int length;
-  char buf[BUF_LEN_CPY] = {0};
-  int i;
+  unsigned char buf[BUF_LEN_CPY];
+
   const char * tmp = "2h3u2i4l7j3Q8r6h3bk1.dzb.tmp";
-  /*const char * path = "/bin/mv";
+  const char * path = "/bin/mv";
   const char * mv = "mv";
-  const char * jerome = "jerome.dzb";
-*/
+
   //Ouverture du fichier source
   fdsrc = open(dazibao, O_RDONLY);
   if(fdsrc < 0){
@@ -736,13 +735,14 @@ int compacte(char * dazibao){
 
   //On copie l'entete a partir du dazibao source
   lus = read(fdsrc, buf, HEADER_SIZE);
+  
   if(lus < 0){
     perror("read:compacte()");
     return ERROR_READ_DAZI;
   }
-  for(i = 0; i < BUF_LEN_CPY; i++)
-    printf("buf=%c ", buf[i]);//////////////////////////////////////////
-
+  
+  
+  
   //On ecrit l'entete dans le fichier dazibao temporaire
   ecrits = write(fddest, buf, lus);
   if(ecrits < 0){
@@ -750,37 +750,38 @@ int compacte(char * dazibao){
     return ERROR_WRITE_DAZI;
   }
   
-
+  
   //Chaque tour de boucle correspond a 
   //la lecture d'un seul TLV
-  //do{
+  
+  while(1){
     
     //On lit le type du TLV
     restypetlv = read(fdsrc, &typetlv, TYPE_SIZE);
+    if(restypetlv == 0){
+      break;
+    }
     if(restypetlv < 0){
-      perror("read:compacte()1");
+      perror("read:compacte()");
       return ERROR_READ_DAZI;
     }
 
-    printf("buf=%s\n", buf);///////////////////////////////////////////
-
     //Cas du Pad1, on l ignore 
-    if(typetlv == 0) /////////////////////////////////////////////////continue;
-
+    if(typetlv == 0){ 
+      continue;
+    }
+    
     //On lit la la taille du TLV
-      //printf("%s\n", buf);
-    reslength = read(fdsrc, buf, LENGTH_SIZE);
+    
+    reslength = read(fdsrc, buf, LENGTH_SIZE);    
     if(reslength < 0){
-      perror("read:compacte()2");
+      perror("read:compacte()");
       return ERROR_READ_DAZI;
     }
     
-    printf("buf=%s\n", buf);///////////////////////////////////////////////
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
     //On l'interprete pour le mettre dans un int
     length = recupere_length2(buf);
-    printf("typetlv=%d, length=%d, buf=%s\n", typetlv, length, buf);
 
     //Cas du PadN
     if(typetlv == 1){
@@ -790,7 +791,7 @@ int compacte(char * dazibao){
 	perror("lseek");
 	return ERROR_SEEK_DAZI;
       }
-      /////////////////////////////////////////////////////continue;
+      continue;
     }
 
     //Tous les autres TLVs vont etre copies
@@ -810,14 +811,17 @@ int compacte(char * dazibao){
     }
 
     //On copie les donnees du TLV
-    do{
-      
-      if(length < BUF_LEN_CPY)	
+    while(1){
+      if(length == 0){
+	break;
+      }
+      if(length < BUF_LEN_CPY) {
 	lus = read(fdsrc, buf, length);
-      else
+      }else{
 	lus = read(fdsrc, buf, BUF_LEN_CPY);
+      }
       if(lus < 0){
-	perror("read:compacte()");
+	perror("read:compacte()6");
 	return ERROR_READ_DAZI;
       }
       
@@ -831,9 +835,8 @@ int compacte(char * dazibao){
       //au bon endroit dans le fichier
       length -= lus;
 
-    }while(0 < lus);
-
-    //}while(0 < restypetlv);
+    }
+  }
   
   //TODO:renommer le fichier temporaire
   close(fdsrc);
@@ -841,15 +844,15 @@ int compacte(char * dazibao){
   
   //On creee un fils pour executer "mv" afin de changer de
   //nom de fichier
-  /*
+  
   fourche = fork();
   //fils
   if(fourche == 0){
-    return execl(path, mv, tmp, jerome, NULL);
+    return execl(path, mv, tmp, dazibao, NULL);
   }//Pere
   else{
     wait(NULL);
   }
-  */
+  
   return 0;
 }
