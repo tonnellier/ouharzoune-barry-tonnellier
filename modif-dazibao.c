@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <sys/file.h>
 
 #include "norme.h"
 #include "modif-dazibao.h"
@@ -38,7 +39,7 @@ int verifie_entete(char * dazibao){
     return fd;
   }
   
-  /* VERROU */
+  /* VERROUILLAGE */
   verrou = flock(fd, LOCK_EX);
   if(verrou < 0){
     perror("flock:verifie_entete()");
@@ -337,7 +338,7 @@ int affiche_tlv(int fd, int tailledonnees, int num){
 /* TODO */
 void affiche_dazibao(char * dazibao){
 
-  int fd, rc, tailledonnees;
+  int fd, rc, tailledonnees, verrou;
   
   /* TODO
      Prise en charge du verrou 
@@ -350,6 +351,14 @@ void affiche_dazibao(char * dazibao){
     perror("open:affiche_dazibao(char *)\n");
     return;
   }  
+
+  /* VERROUILLAGE */
+  verrou = flock(fd, LOCK_EX);
+  if(verrou < 0){
+    perror("flock:affiche_dazibao()");
+    return;
+  }
+  
   tailledonnees = lseek(fd, 0,SEEK_END);
   if(tailledonnees < 0){
     perror("lseek:affiche_dazibao()");
@@ -365,10 +374,18 @@ void affiche_dazibao(char * dazibao){
   //tailledonnees = tailledonnees - rc;
   printf("---------Dazibao------------\n\n");
   printf("taillesdonnees=%d\n", tailledonnees);
+  /*  AFICHAGE DES TLVs */
   rc = affiche_tlv(fd, tailledonnees-HEADER_SIZE, 1);
   printf("\n----------Fin-Dazibao------------\n");
   if(rc < 0){
     printf("Erreur d'affichage des TLVs\n");
+  }
+
+  /* DEVERROUILLAGE */
+  verrou = flock(fd, LOCK_EX);
+  if(verrou < 0){
+    perror("flock:affiche_dazibao()");
+    return;
   }
 
   close(fd);
@@ -503,7 +520,7 @@ int supprime_tlv_aux(int fd, int tailledonnees, int num){
 
 
 int supprime_tlv(char * dazibao, int num){
-  int fd, rc, tailledonnees;
+  int fd, rc, tailledonnees, verrou;
   
   //On ouvre le fichier
   fd = open(dazibao, O_RDWR);
@@ -511,6 +528,14 @@ int supprime_tlv(char * dazibao, int num){
     perror("open:supprime_tlv()");
     return errno;
   }
+
+  /* VERROUILLAGE */
+  verrou = flock(fd, LOCK_EX);
+  if(verrou < 0){
+    perror("flock:supprime_tlv()");
+    return ERROR_LOCK_FILE;
+  }
+
   tailledonnees = lseek(fd, 0, SEEK_END);
   if(tailledonnees < 0){
     perror("lseek:affiche_tlv()");
@@ -531,6 +556,13 @@ int supprime_tlv(char * dazibao, int num){
   if(rc < 0){
     printf("Erreur:supprime_tlv()\n");
     return rc;
+  }
+
+  /* DEVERROUILLAGE */
+  verrou = flock(fd, LOCK_EX);
+  if(verrou < 0){
+    perror("flock:supprime_tlv()");
+    return ERROR_LOCK_FILE;
   }
 
   close(fd);
@@ -561,6 +593,7 @@ int ajoute_tlv(char * dazibao, unsigned char typetlv, int length,
   int fd,  ecrits,  cpt_donnees = 0;
   int fd2, lus;
   int rc;
+  int verrou;
   unsigned char * len3;
   char buf[BUF_LEN_CPY];
   
@@ -569,6 +602,13 @@ int ajoute_tlv(char * dazibao, unsigned char typetlv, int length,
   if(fd < 0){
     perror("open:ajoute_tlv()");
     return ERROR_READ_DAZI;
+  }
+
+  /* VERROUILLAGE */
+  verrou = flock(fd, LOCK_EX);
+  if(verrou < 0){
+    perror("flock:ajoute_tlv()");
+    return ERROR_LOCK_FILE;
   }
 
   switch(typetlv){
@@ -714,6 +754,14 @@ int ajoute_tlv(char * dazibao, unsigned char typetlv, int length,
 
   }//fin switch
 
+  /* DEVERROUILLAGE */
+  verrou = flock(fd, LOCK_EX);
+  if(verrou < 0){
+    perror("flock:supprime_tlv()");
+    return ERROR_LOCK_FILE;
+  }
+
+  close(fd);
   return 0;
 }
 
@@ -729,6 +777,7 @@ int compacte(char * dazibao){
   unsigned int reslength;
   int length;
   unsigned char buf[BUF_LEN_CPY];
+  int verrou;
 
   const char * tmp = "2h3u2i4l7j3Q8r6h3bk1.dzb.tmp";
   const char * path = "/bin/mv";
@@ -741,6 +790,13 @@ int compacte(char * dazibao){
     return ERROR_READ_DAZI;
   }
   
+  /* VERROUILLAGE */
+  verrou = flock(fdsrc, LOCK_EX);
+  if(verrou < 0){
+    perror("flock:compacte()");
+    return ERROR_LOCK_FILE;
+  }
+
   //Ouverture du fichier de destination avec un nom bizarre
   fddest = open(tmp, O_CREAT|O_TRUNC|O_WRONLY, 0666);
   if(fddest < 0){
@@ -854,21 +910,32 @@ int compacte(char * dazibao){
     }
   }
   
-  //TODO:renommer le fichier temporaire
-  close(fdsrc);
+  
+
   close(fddest);
   
   //On creee un fils pour executer "mv" afin de changer de
   //nom de fichier
   
   fourche = fork();
-  //fils
+  //Fils
   if(fourche == 0){
     return execl(path, mv, tmp, dazibao, NULL);
   }//Pere
   else{
-    wait(NULL);
+    wait(NULL);    
   }
   
+  /* DEVERROUILLAGE */
+  verrou = flock(fdsrc, LOCK_EX);
+  if(verrou < 0){
+    perror("flock:compacte()");
+    return ERROR_LOCK_FILE;
+  }
+
+  //TODO:renommer le fichier temporaire
+  close(fdsrc);
+  
+
   return 0;
 }

@@ -112,6 +112,7 @@ void menu_modif_dazibao(char * dazibao){
     switch(choix){
 
     case 1: {
+      //Afficher le dazibao 
 	affiche_dazibao(dazibao);
     }      break;
 
@@ -159,6 +160,7 @@ void menu_modif_dazibao(char * dazibao){
     case 3: {
       printf("Entrer le numero du TLV a supprimer !\n");
       num = lire_entier();
+      //On supprime le TLV numero num
       rc = supprime_tlv(dazibao, num);
       printf("supprime_tlv(%s,%d)=%d\n", dazibao, num, rc);
       if(rc < 0){
@@ -168,7 +170,7 @@ void menu_modif_dazibao(char * dazibao){
     }break; 
 
     case 4: {
-      //--------------------Compaction
+      //Compaction du dazibao
       rc = compacte(dazibao);
       if(rc < 0){
 	printf("Erreur:compacte()\n");
@@ -245,7 +247,7 @@ int main(int argc, char ** argv){
     return 0;
   }
 
-  do{
+  while(1){
     affiche_menu_choix_fichier(sdv);
   
     choix_fichier = recupere_choix_menu(sdv->nb_dazis);
@@ -259,7 +261,7 @@ int main(int argc, char ** argv){
       menu_modif_dazibao(sdv->dazis[choix_fichier-1]);
     }
     
-  }while(1);
+  }
   
   return 0;
 }
