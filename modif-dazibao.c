@@ -40,7 +40,7 @@ int verifie_entete(char * dazibao){
   }
   
   /* VERROUILLAGE */
-  verrou = flock(fd, LOCK_EX);
+  verrou = flock(fd, LOCK_SH);
   if(verrou < 0){
     perror("flock:verifie_entete()");
     return ERROR_LOCK_FILE;
@@ -72,8 +72,8 @@ int verifie_entete(char * dazibao){
     
   }
 
-  /* VERROU */
-  verrou = flock(fd, LOCK_EX);
+  /* DEVERROUILLAGE */
+  verrou = flock(fd, LOCK_SH);
   if(verrou < 0){
     perror("flock:verifie_entete()");
     return ERROR_LOCK_FILE;
@@ -353,7 +353,7 @@ void affiche_dazibao(char * dazibao){
   }  
 
   /* VERROUILLAGE */
-  verrou = flock(fd, LOCK_EX);
+  verrou = flock(fd, LOCK_SH);
   if(verrou < 0){
     perror("flock:affiche_dazibao()");
     return;
@@ -382,7 +382,7 @@ void affiche_dazibao(char * dazibao){
   }
 
   /* DEVERROUILLAGE */
-  verrou = flock(fd, LOCK_EX);
+  verrou = flock(fd, LOCK_SH);
   if(verrou < 0){
     perror("flock:affiche_dazibao()");
     return;
