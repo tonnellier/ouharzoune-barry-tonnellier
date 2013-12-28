@@ -12,76 +12,9 @@
 #include "modif-dazibao.h"
 
 
-#define HEADER_ERROR -53
-#define ERROR_READ_DAZI -2
-#define ERROR_WRITE_DAZI -6
-#define ERROR_SEEK_DAZI -5
-#define ERROR_WRITE_TEXT -3
-#define ERROR_LOCK_FILE -7
-#define ERROR_UNKNOW -4
-#define EOF_DAZI -1
-#define BUF_LEN_TEXT 64
-#define BUF_LEN_CPY 1024
-
-/* TEST OK */
-int verifie_entete(char * dazibao){
-  unsigned char head[HEADER_SIZE];
-  int fd, rc, verrou;
-  
-  /* TODO
-    ajouter la pose d'un verrou flock
-  */
-
-  fd = open(dazibao, O_RDONLY);
-  if(fd < 0){
-    perror("open:verifie_entete()");
-    close(fd);
-    return fd;
-  }
-  
-  /* VERROUILLAGE */
-  verrou = flock(fd, LOCK_SH);
-  if(verrou < 0){
-    perror("flock:verifie_entete()");
-    return ERROR_LOCK_FILE;
-  }
-
-  /* Lecture de l'entete */
-  rc =  read(fd, head, HEADER_SIZE);
-  if(rc < 0){
-    perror("read:verifie_entete()");
-    close(fd);
-    return rc;
-  }else{
 
 
-    if(rc != HEADER_SIZE){
-      printf("La taille de l'entete n'a pu etre lue\n");
-      return HEADER_ERROR;
-    }else{
-      if(head[0] != MAGIC){
-	printf("Le numero magic n'est pas correct:MAGIC=%d\n",head[0]);
-	return HEADER_ERROR;
-      }
-      if(head[1] != VERSION){
-	printf("Le numero de version n'est pas correct:");
-	printf("VERSION=%d\n", head[1]);
-	return HEADER_ERROR;
-      }
-    }
-    
-  }
 
-  /* DEVERROUILLAGE */
-  verrou = flock(fd, LOCK_SH);
-  if(verrou < 0){
-    perror("flock:verifie_entete()");
-    return ERROR_LOCK_FILE;
-  }
-
-  close(fd);
-  return 0;
-}
 
 /* TEST OK
    TODO

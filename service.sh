@@ -1,0 +1,1 @@
+gcc service-notif.c -o service-notif -Wall

@@ -1,7 +1,7 @@
 -verrous (vider les tampons avant de lacher le verrou + attention a 
 l'asynchronisme (msync))
 -notifications (sockets + verifier derniere date modif)
-
+-trouver la taille d'un fichier avec fstat
 
 -modif texte fichier
 

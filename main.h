@@ -1,7 +1,7 @@
 #define SANS_CHOIX 0
 #define QUITTER -1
 #define TAILLE_CHOIX 128
-#define MAX_FICHIERS 128
+
 
 /* Gere le menu principal pour selectionner
    un dazibao

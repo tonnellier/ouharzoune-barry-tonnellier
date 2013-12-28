@@ -19,3 +19,18 @@
 #define TYPE_DATED 6
 
 /* types TLV etudiantes*/
+
+
+/* Erreurs */
+#define HEADER_ERROR -53
+#define ERROR_READ_DAZI -2
+#define ERROR_WRITE_DAZI -6
+#define ERROR_SEEK_DAZI -5
+#define ERROR_WRITE_TEXT -3
+#define ERROR_LOCK_FILE -7
+#define ERROR_UNKNOW -4
+
+/* Autres constantes */
+#define EOF_DAZI -1
+#define BUF_LEN_TEXT 64
+#define BUF_LEN_CPY 1024
