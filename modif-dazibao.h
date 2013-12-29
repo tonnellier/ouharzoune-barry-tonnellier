@@ -6,45 +6,6 @@
 #define EOF_DAZI -1
 
 
-
-
-
-/* Affiche le texte d'un TLV. Le descripteur 
-   de fichier fd est deja positionné correctement
-   au debut du texte.
-   Length est la taille des données à lire.
-   Renvoie 0 si tout va bien, sinon un 
-   entier negatif.
- */
-int affiche_texte(int fd, int length); //TEST OK - REMAIN
-
-
-
-/* Lit la taille d'un TLV à partir d'un
-   descripteur de fichier fd positionne
-   au bon endroit puis renvoie 
-   le champs length de celui-ci.
-   Renvoie la taille length si tout va bien, 
-   sinon un entier negatif.
-*/
-int recupere_length(int fd); // TEST OK
-
-/*
-  interprete un entier a partir d'un tableau d'une taille max 
-  de 4 unsigned char
-  Renvoie l'entier si tout va bien
-*/
-int recupere_length2(unsigned char * buf);
-
-
-/* Lit la date d'un TLV de type dated.
-   Renvoie un entier positif pour la date
-   sinon un entier negatif en cas d'erreur
- */
-/*
-int recupere_date(int fd);
-*/
-
 /* Affiche un TLV à partir d'un descripteur de
    fichier positionné au début de celui-ci.
    l'argument <offsetfin> permet de savoir
@@ -62,14 +23,26 @@ int recupere_date(int fd);
    <num> permet de numeroter les TLV de 1 à n
  */
 int affiche_tlv(int fd, int tailledonnees, int num); //TEST EN COURS
-
-
-
 /* Affiche le contenu d'un dazibao
    Renvoie 0 si tout va bien, sinon
    un entier negatif.
 */
 void affiche_dazibao(char * dazibao);
+
+
+/*
+  Ajoute un TLV à la fin du fichier dazibao
+  Renvoie 0 si tout va bien
+  Sinon entier negatif
+ */
+int ajoute_tlv(char * dazibao, unsigned char typetlv, int length, char * fichierdonnees);
+
+
+/* 
+   Supprime un tlv a la position <num>
+   Renvoie 0 si tout va bien
+ */
+int supprime_tlv_aux(int fd, int tailledonnees, int num);
 
 
 /* Ouvre le fichier dazibao puis
@@ -78,11 +51,14 @@ void affiche_dazibao(char * dazibao);
  */
 int supprime_tlv(char * dazibao, int num);
 
-/* 
-   Supprime un tlv a la position <num>
-   Renvoie 0 si tout va bien
- */
-int supprime_tlv_aux(int fd, int tailledonnees, int num);
+
+/*
+  Reecrit le dazibao en supprimant les Pad1 et PadN
+  afin de compacter les donnees
+  Revoie 0 si tout va bien 
+  Sinon un entier negatif
+*/
+int compacte(char * dazibao);
 
 
 /*
@@ -94,16 +70,30 @@ unsigned char * int_to_char4(unsigned int entier);
 
 
 /*
-  Ajoute un TLV à la fin du fichier dazibao
-  Renvoie 0 si tout va bien
-  Sinon entier negatif
- */
-int ajoute_tlv(char * dazibao, unsigned char typetlv, int length, char * fichierdonnees);
+  Affiche le texte d'un TLV à partir 
+  d'un descripteur de fichier <fd>
+  et d'une taille de texte donnee <length>.
+  
+  <fd> doit se trouver au debut du texte dans le fichier.
+
+  Avant de se terminer la fonction replace le <fd> au debut du texte.
+
+  Renvoie 0 si tout va bien sinon un entier negatif.
+*/
+int affiche_texte(int fd, int length);
+
+/* Lit la taille d'un TLV à partir d'un
+   descripteur de fichier fd positionne
+   au bon endroit puis renvoie 
+   le champs length de celui-ci.
+   Renvoie la taille length si tout va bien, 
+   sinon un entier negatif.
+*/
+int recupere_length(int fd); // TEST OK
 
 /*
-  Reecrit le dazibao en supprimant les Pad1 et PadN
-  afin de compacter les donnees
-  Revoie 0 si tout va bien 
-  Sinon un entier negatif
+  interprete un entier a partir d'un tableau d'une taille max 
+  de 4 unsigned char
+  Renvoie l'entier si tout va bien
 */
-int compacte(char * dazibao);
+int recupere_length2(unsigned char * buf);

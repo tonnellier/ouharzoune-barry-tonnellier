@@ -12,113 +12,11 @@
 #include "modif-dazibao.h"
 
 
-
-
-
-
-/* TEST OK
-   TODO
- */
-int affiche_texte(int fd, int length){
-    unsigned char buf[BUF_LEN_TEXT];
-    int lus, ecrits, reste = length, rc;
-    printf("-------------Text--------------\n");
-    while(1){
-
-	if(reste < BUF_LEN_TEXT) 
-	    lus = read(fd, buf, reste);
-	else
-	    lus = read(fd, buf, BUF_LEN_TEXT);
-
-	if (lus < 0){
-	    perror("read:affiche_texte(int,int)");
-	    return ERROR_READ_DAZI;
-	}
-	else{
-	    if(lus == 0){
-		break;
-	    }
-	    else{
-	      ecrits = write(STDOUT_FILENO, buf, lus);
-	      printf("\n");
-	      if(ecrits < 0){
-		perror("write:affiche_texte(int,int)");
-		return ERROR_WRITE_TEXT;
-	      }
-	      
-	    }
-	}
-
-	reste -= lus;
-    }
-    //On replace le curseur comme avant la lecture
-    rc = lseek(fd, -length, SEEK_CUR);
-    if(rc < 0){
-      perror("lseek:affiche_texte(int,int)");
-      return ERROR_SEEK_DAZI;
-    }
-    printf("------------Fin-Text------------\n");
-    return 0;
-}
-
-
-
-// TODO
-int recupere_length(int fd){
-  int rc, length = 0;
-  unsigned char buflen[LENGTH_SIZE];
-  rc = read(fd, buflen, LENGTH_SIZE);
-  if(rc < 0){
-    perror("read:recupere_length");
-    return ERROR_READ_DAZI;
-  }
-  
-  else{
-    if(rc == LENGTH_SIZE){
-      length = buflen[0];
-      length = length << 8;
-      length += buflen[1];
-      length = length << 8;
-      length += buflen[2];
-    }
-    else{
-      printf("read:recupere_length(tous les octets n'ont pas etes lus)\n");
-      return ERROR_READ_DAZI;
-    }
-  }
-  return length;
-}
-
-int recupere_length2(unsigned char * buf){
-  int length = 0;
-  int i;
-
-  for(i = 0; i < LENGTH_SIZE; i++){
-    length = length << 8;    
-    length += buf[i];
-  }
-
-  return length;
-}
-
-/* TODO
-
- */
-/*
-int recupere_date(int fd){
-  //unsigned int date;
-  return 0;
-}
-*/
-
-
-
-/* AFFICHE_TLV */
-
 int affiche_tlv(int fd, int tailledonnees, int num){
   int i = 0, rc, length, rc3;
   unsigned char typetlv;
 
+  //On tente de lire la totalite des donnees (tailledonnees)
   while(i < tailledonnees){
     
     printf("tailledonnees=%d\n", tailledonnees);
@@ -268,15 +166,12 @@ int affiche_tlv(int fd, int tailledonnees, int num){
 }
 
 
-/* TODO */
+//Afichage des TLVs
 void affiche_dazibao(char * dazibao){
 
   int fd, rc, tailledonnees, verrou;
   
-  /* TODO
-     Prise en charge du verrou 
-  */
-
+  
 
   /* Ouverture du fichier  */
   fd = open(dazibao, O_RDONLY);
@@ -326,200 +221,7 @@ void affiche_dazibao(char * dazibao){
 }
 
 
-int supprime_tlv_aux(int fd, int tailledonnees, int num){
-  int rc, length, cur = 1, i=0;
-  unsigned char typetlv;
-
-  if (num < cur){
-    printf("numero de TLV incorrect num=%d\n", num);
-    return -1;
-  }
-
-  //On passe tous les TLVs qui précèdent celui a supprimer
-  while(i < tailledonnees){
-    
-    //Cas du bon TLV a supprimer
-    if(cur == num){
-      
-      rc = read(fd, &typetlv, TYPE_SIZE);
-      if(rc < 0){
-	perror("read:supprime_tlv_aux()");
-	return ERROR_READ_DAZI;
-      }
-      //Cas Pad1 (on laisse tel quel)
-      if(typetlv == 0) return 0;
-
-      //Sinon on transforme le TLV en PadN.
-      rc = lseek(fd, -TYPE_SIZE,SEEK_CUR);
-      if(rc < 0){
-	perror("lseek");
-	return ERROR_SEEK_DAZI;
-      }
-      printf("offset debut du TLV a supprimer=%x\n", rc);
-      
-      
-
-      typetlv = 1;
-      //On le remplace par un PaDN
-      rc = write(fd, &typetlv, TYPE_SIZE);
-      if(rc < 0){
-	perror("write:supprime_tlv_aux()");
-	return ERROR_WRITE_DAZI;
-      }
-     
-      printf("Le TLV a ete supprimé !\n");
-      
-      return 0;
-    }
-
-    //On lit le type du TLV
-    rc = read(fd, &typetlv, TYPE_SIZE);
-    if(rc < 0){
-      perror("read:supprime_tlv_aux()");
-      return rc;
-    }
-    i += TYPE_SIZE;
-
-    printf("typetlv=%d\n", typetlv);
-
-     //Test du Pad1 qui est sur un seul octet
-    if (typetlv == TYPE_PAD1) {
-      cur ++;
-      continue;
-    }
-    //on lit le champ length puis on
-    //avance de 3 octets
-    length = recupere_length(fd);
-    if(length < 0){
-      printf("Erreur:supprime_tlv_aux():recupere_length()");
-      return length;
-    }
-    i+= LENGTH_SIZE;
-    //------------------------
-
-    printf("length=%d\n", length);
-    
-    //Cas du compound
-    if(typetlv == 5){
-      
-      cur++;
-      continue;
-    }
-    
-
-    //Cas du dated
-    if(typetlv == 6){
-      rc = lseek(fd, DATE_SIZE, SEEK_CUR);
-      if(rc < 0){
-	perror("lseek:supprime_tlv_aux()");
-	return ERROR_SEEK_DAZI;
-      }
-      i+= DATE_SIZE;
-
-      //On ne passe pas les donnees
-      //dans le dated, on refait un tour de 
-      //boucle pour pouvoir les lire
-      
-      cur++;
-      continue;
-      
-    }
-    
-
-
-    //On passe les donnees du TLV en question
-    rc = lseek(fd, length, SEEK_CUR);
-    if(rc < 0){
-      perror("lseek:supprime_tlv_aux()");
-      return ERROR_SEEK_DAZI;
-    }
-    //ATTENTION au cas 5 et 6
-    i+=length;
-    
-    printf("nouvel offset a la fin du TLV=%d\n\n", rc);
-    
-    cur++;
-
-  }//fin while
-  
-  
-  
-  
-  
-  printf("Le TLV numero=%d n'a pas ete modifie,", num);
-  printf("il n'existe peut etre pas\n");
-  return -1;
-}
-
-
-int supprime_tlv(char * dazibao, int num){
-  int fd, rc, tailledonnees, verrou;
-  
-  //On ouvre le fichier
-  fd = open(dazibao, O_RDWR);
-  if(fd < 0){
-    perror("open:supprime_tlv()");
-    return errno;
-  }
-
-  /* VERROUILLAGE */
-  verrou = flock(fd, LOCK_EX);
-  if(verrou < 0){
-    perror("flock:supprime_tlv()");
-    return ERROR_LOCK_FILE;
-  }
-
-  tailledonnees = lseek(fd, 0, SEEK_END);
-  if(tailledonnees < 0){
-    perror("lseek:affiche_tlv()");
-    return ERROR_SEEK_DAZI;
-  }
-  tailledonnees -= HEADER_SIZE;
-
-  //On passe l'entete du dazibao
-  rc = lseek(fd, HEADER_SIZE, SEEK_SET);
-  if(rc < 0){
-    perror("lseek:supprime_tlv()");
-    return errno;
-  }
-  
-  //On appelle la fonction qui va
-  //transformer le TLV en PadN
-  rc = supprime_tlv_aux(fd, tailledonnees, num);
-  if(rc < 0){
-    printf("Erreur:supprime_tlv()\n");
-    return rc;
-  }
-
-  /* DEVERROUILLAGE */
-  verrou = flock(fd, LOCK_EX);
-  if(verrou < 0){
-    perror("flock:supprime_tlv()");
-    return ERROR_LOCK_FILE;
-  }
-
-  close(fd);
-  return 0;
-}
-
-unsigned char * int_to_char4(unsigned int entier){
-  unsigned char * char4 = (unsigned char *)malloc(sizeof(unsigned char) *4);
-  int i;
-  
-  if(char4 == NULL){
-    printf("malloc:int_to_char4()\n");
-    return NULL;
-  }
-
-  for(i = 3; 0 <= i; i--){
-    
-    char4[i] = (unsigned char) entier;
-    entier = entier >> 8;
-  }
-  return char4;
-}
-
-//On ajoute un seul TLV
+//Ajout de TLV
 int ajoute_tlv(char * dazibao, unsigned char typetlv, int length, 
 	       char * fichierdonnees){
 
@@ -698,6 +400,187 @@ int ajoute_tlv(char * dazibao, unsigned char typetlv, int length,
   return 0;
 }
 
+
+int supprime_tlv_aux(int fd, int tailledonnees, int num){
+  int rc, length, cur = 1, i=0;
+  unsigned char typetlv;
+
+  if (num < cur){
+    printf("numero de TLV incorrect num=%d\n", num);
+    return -1;
+  }
+
+  //On passe tous les TLVs qui précèdent celui a supprimer
+  while(i < tailledonnees){
+    
+    //Cas du bon TLV a supprimer
+    if(cur == num){
+      
+      rc = read(fd, &typetlv, TYPE_SIZE);
+      if(rc < 0){
+	perror("read:supprime_tlv_aux()");
+	return ERROR_READ_DAZI;
+      }
+      //Cas Pad1 (on laisse tel quel)
+      if(typetlv == 0) return 0;
+
+      //Sinon on transforme le TLV en PadN.
+      rc = lseek(fd, -TYPE_SIZE,SEEK_CUR);
+      if(rc < 0){
+	perror("lseek");
+	return ERROR_SEEK_DAZI;
+      }
+      printf("offset debut du TLV a supprimer=%x\n", rc);
+      
+      
+
+      typetlv = 1;
+      //On le remplace par un PaDN
+      rc = write(fd, &typetlv, TYPE_SIZE);
+      if(rc < 0){
+	perror("write:supprime_tlv_aux()");
+	return ERROR_WRITE_DAZI;
+      }
+     
+      printf("Le TLV a ete supprimé !\n");
+      
+      return 0;
+    }
+
+    //On lit le type du TLV
+    rc = read(fd, &typetlv, TYPE_SIZE);
+    if(rc < 0){
+      perror("read:supprime_tlv_aux()");
+      return rc;
+    }
+    i += TYPE_SIZE;
+
+    printf("typetlv=%d\n", typetlv);
+
+     //Test du Pad1 qui est sur un seul octet
+    if (typetlv == TYPE_PAD1) {
+      cur ++;
+      continue;
+    }
+    //on lit le champ length puis on
+    //avance de 3 octets
+    length = recupere_length(fd);
+    if(length < 0){
+      printf("Erreur:supprime_tlv_aux():recupere_length()");
+      return length;
+    }
+    i+= LENGTH_SIZE;
+    //------------------------
+
+    printf("length=%d\n", length);
+    
+    //Cas du compound
+    if(typetlv == 5){
+      
+      cur++;
+      continue;
+    }
+    
+
+    //Cas du dated
+    if(typetlv == 6){
+      rc = lseek(fd, DATE_SIZE, SEEK_CUR);
+      if(rc < 0){
+	perror("lseek:supprime_tlv_aux()");
+	return ERROR_SEEK_DAZI;
+      }
+      i+= DATE_SIZE;
+
+      //On ne passe pas les donnees
+      //dans le dated, on refait un tour de 
+      //boucle pour pouvoir les lire
+      
+      cur++;
+      continue;
+      
+    }
+    
+
+
+    //On passe les donnees du TLV en question
+    rc = lseek(fd, length, SEEK_CUR);
+    if(rc < 0){
+      perror("lseek:supprime_tlv_aux()");
+      return ERROR_SEEK_DAZI;
+    }
+    //ATTENTION au cas 5 et 6
+    i+=length;
+    
+    printf("nouvel offset a la fin du TLV=%d\n\n", rc);
+    
+    cur++;
+
+  }//fin while
+  
+  
+  
+  
+  
+  printf("Le TLV numero=%d n'a pas ete modifie,", num);
+  printf("il n'existe peut etre pas\n");
+  return -1;
+}
+
+//Suppression d'un TLV
+int supprime_tlv(char * dazibao, int num){
+  int fd, rc, tailledonnees, verrou;
+  
+  //On ouvre le fichier
+  fd = open(dazibao, O_RDWR);
+  if(fd < 0){
+    perror("open:supprime_tlv()");
+    return errno;
+  }
+
+  /* VERROUILLAGE */
+  verrou = flock(fd, LOCK_EX);
+  if(verrou < 0){
+    perror("flock:supprime_tlv()");
+    return ERROR_LOCK_FILE;
+  }
+
+  tailledonnees = lseek(fd, 0, SEEK_END);
+  if(tailledonnees < 0){
+    perror("lseek:affiche_tlv()");
+    return ERROR_SEEK_DAZI;
+  }
+  tailledonnees -= HEADER_SIZE;
+
+  //On passe l'entete du dazibao
+  rc = lseek(fd, HEADER_SIZE, SEEK_SET);
+  if(rc < 0){
+    perror("lseek:supprime_tlv()");
+    return errno;
+  }
+  
+  //On appelle la fonction qui va
+  //transformer le TLV en PadN
+  rc = supprime_tlv_aux(fd, tailledonnees, num);
+  if(rc < 0){
+    printf("Erreur:supprime_tlv()\n");
+    return rc;
+  }
+
+  /* DEVERROUILLAGE */
+  verrou = flock(fd, LOCK_EX);
+  if(verrou < 0){
+    perror("flock:supprime_tlv()");
+    return ERROR_LOCK_FILE;
+  }
+
+  close(fd);
+  return 0;
+}
+
+
+
+
+//Compaction d'un dazibao
 int compacte(char * dazibao){
   int fdsrc;
   int fddest;
@@ -871,4 +754,112 @@ int compacte(char * dazibao){
   
 
   return 0;
+}
+
+//Permet de convertir un int en un champ Length d'un TLV
+unsigned char * int_to_char4(unsigned int entier){
+  unsigned char * char4 = (unsigned char *)malloc(sizeof(unsigned char) *4);
+  int i;
+  
+  if(char4 == NULL){
+    printf("malloc:int_to_char4()\n");
+    return NULL;
+  }
+
+  for(i = 3; 0 <= i; i--){
+    
+    char4[i] = (unsigned char) entier;
+    entier = entier >> 8;
+  }
+  return char4;
+}
+
+//Affichage d'un texte 
+int affiche_texte(int fd, int length){
+    unsigned char buf[BUF_LEN_TEXT];
+    int lus, ecrits, reste = length, rc;
+    printf("-------------Text--------------\n");
+    while(1){
+
+	if(reste < BUF_LEN_TEXT) 
+	    lus = read(fd, buf, reste);
+	else
+	    lus = read(fd, buf, BUF_LEN_TEXT);
+
+	if (lus < 0){
+	    perror("read:affiche_texte(int,int)");
+	    return ERROR_READ_DAZI;
+	}
+	else{
+	    if(lus == 0){
+		break;
+	    }
+	    else{
+	      ecrits = write(STDOUT_FILENO, buf, lus);
+	      printf("\n");
+	      if(ecrits < 0){
+		perror("write:affiche_texte(int,int)");
+		return ERROR_WRITE_TEXT;
+	      }
+	      
+	    }
+	}
+
+	reste -= lus;
+    }
+    //On replace le curseur comme avant la lecture
+    rc = lseek(fd, -length, SEEK_CUR);
+    if(rc < 0){
+      perror("lseek:affiche_texte(int,int)");
+      return ERROR_SEEK_DAZI;
+    }
+    printf("------------Fin-Text------------\n");
+    return 0;
+}
+
+/*
+Permet de recuperer le champ Length d'un dazibao.
+Elle fait avancer le descripteur de fichier <fd>
+du champ Length.
+*/
+int recupere_length(int fd){
+  int rc, length = 0;
+  unsigned char buflen[LENGTH_SIZE];
+  rc = read(fd, buflen, LENGTH_SIZE);
+  if(rc < 0){
+    perror("read:recupere_length");
+    return ERROR_READ_DAZI;
+  }
+  
+  else{
+    if(rc == LENGTH_SIZE){
+      length = buflen[0];
+      length = length << 8;
+      length += buflen[1];
+      length = length << 8;
+      length += buflen[2];
+    }
+    else{
+      printf("read:recupere_length(tous les octets n'ont pas etes lus)\n");
+      return ERROR_READ_DAZI;
+    }
+  }
+  return length;
+}
+
+/*
+  La fonction prend en argument un char *
+  puis lit les 4 premiers caracteres 
+  pour en faire un entier (qui correspond au champ Length).
+*/
+int recupere_length2(unsigned char * buf){
+  int length = 0;
+  int i;
+
+  for(i = 0; i < LENGTH_SIZE; i++){
+    length = length << 8;    
+    length += buf[i];
+  }
+
+  return length;
 }

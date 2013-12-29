@@ -99,7 +99,7 @@ void menu_modif_dazibao(char * dazibao){
   int choix, rc, num, length;
   unsigned char typetlv;
   char * fichierdonnees;
-  //nombre d'options de modification d'un dazibao
+  //nombre de fonctionnalites a appliquer sur un dazibao
   int nbopt = 4;
   
   while(1){
@@ -110,18 +110,22 @@ void menu_modif_dazibao(char * dazibao){
 
     switch(choix){
 
+
+      //Affichage du dazibao 
     case 1: {
-      //Afficher le dazibao 
+      
 	affiche_dazibao(dazibao);
     }      break;
 
 
+      //Ajout du TLV
     case 2: {
+
       //type TLV
       printf("Entrez le numero de type du TLV !\n");
       typetlv = (unsigned char)lire_entier();
 
-      
+      //Cas ou le TLV necessite un champ length
       if(0 < typetlv){
 	//Pour le PadN on recupere juste sa length
 	if(typetlv == 1){
@@ -156,9 +160,12 @@ void menu_modif_dazibao(char * dazibao){
     }break;
     
 
+      //Supprimer un TLV dans le dazibao
     case 3: {
+
       printf("Entrer le numero du TLV a supprimer !\n");
       num = lire_entier();
+
       //On supprime le TLV numero num
       rc = supprime_tlv(dazibao, num);
       printf("supprime_tlv(%s,%d)=%d\n", dazibao, num, rc);
@@ -168,14 +175,17 @@ void menu_modif_dazibao(char * dazibao){
       
     }break; 
 
-    case 4: {
+
       //Compaction du dazibao
+    case 4: {
+
       rc = compacte(dazibao);
       if(rc < 0){
 	printf("Erreur:compacte()\n");
       }
-      //-------------------fin-Compaction
+
     }break;
+
 
     default: {
       printf("Mauvais choix\n");
@@ -202,6 +212,7 @@ int main(int argc, char ** argv){
   }
 
   while(1){
+
     affiche_menu_choix_fichier(sdv);
   
     choix_fichier = recupere_choix_menu(sdv->nb_dazis);

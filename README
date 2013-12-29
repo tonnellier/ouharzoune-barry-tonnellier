@@ -27,7 +27,7 @@ Auteurs du projet : Jérôme Tonnellier, Karim Ouharzoune et Mamadou Barry.
 
   - Pour activer le programme (service) de notifications, entrez :
 
-  ./service-notif
+  ./service-notif <dazibao-1> <dazibao-2> ... <dazibao-n>
 
 * Nettoyage du projet :
 
