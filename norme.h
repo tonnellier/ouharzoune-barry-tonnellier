@@ -31,6 +31,11 @@
 #define ERROR_UNKNOW -4
 
 /* Autres constantes */
+#define SANS_CHOIX 0
+#define QUITTER -1
+
+#define TAILLE_CHOIX 128
+
 #define EOF_DAZI -1
 #define BUF_LEN_TEXT 64
 #define BUF_LEN_CPY 1024

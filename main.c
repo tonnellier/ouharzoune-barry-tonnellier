@@ -11,6 +11,38 @@
 #include "dazis-verifies.c"
 
 
+int lire_entier(){
+  
+  char * str;
+  int rc;
+  
+  str = lire_string();
+  if(str == NULL){
+    return -1;
+  }
+
+  rc = atoi(str); 
+ 
+  if(rc == 0){
+    printf("chaine=\"%s\"\n", str);
+  }
+ 
+  return rc;
+}
+
+
+char * lire_string(){
+  int rc;
+  char * str = (char *)malloc(sizeof(char) * TAILLE_CHOIX);
+ 
+  rc = scanf("%s", str);
+  if(rc == 0){
+    perror("scanf:lire_string()");
+    return NULL;
+  }
+  return str;
+}
+
 
 int recupere_choix_menu(int nb_choix){
   char choix_string[TAILLE_CHOIX];
@@ -40,37 +72,6 @@ int recupere_choix_menu(int nb_choix){
   return choix_fichier;
 }
 
-char * lire_string(){
-  int rc;
-  char * str = (char *)malloc(sizeof(char) * TAILLE_CHOIX);
- 
-  rc = scanf("%s", str);
-  if(rc == 0){
-    perror("scanf:lire_string()");
-    return NULL;
-  }
-  return str;
-}
-
-int lire_entier(){
-  
-  char * str;
-  int rc;
-  
-  str = lire_string();
-  if(str == NULL){
-    return -1;
-  }
-
-  rc = atoi(str); 
- 
-  if(rc == 0){
-    printf("chaine=\"%s\"\n", str);
-  }
- 
-  return rc;
-}
-
 
 void affiche_menu_modif_dazibao(char * dazibao){
   int i = 0;
@@ -91,9 +92,9 @@ void affiche_menu_modif_dazibao(char * dazibao){
   printf("q - quitter pour le menu précédent\n");
   printf("******************************************\n");
 }
-/* TODO 5
-   Deuxieme gros menu a finir
- */
+
+
+
 void menu_modif_dazibao(char * dazibao){
   int choix, rc, num, length;
   unsigned char typetlv;

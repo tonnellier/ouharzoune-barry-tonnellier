@@ -28,3 +28,7 @@ Auteurs du projet : Jérôme Tonnellier, Karim Ouharzoune et Mamadou Barry.
   - Pour activer le programme (service) de notifications, entrez :
 
   ./service-notif
+
+* Nettoyage du projet :
+
+  Entrez : make clean
