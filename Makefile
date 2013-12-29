@@ -1,5 +1,12 @@
-mdazi: main.c main.h norme.h modif-dazibao.c
-	gcc main.c -o mdazi -Wall
+OPTIONS = -Wall
+
+all: mdazi service-notif
+
+mdazi:
+	gcc main.c -o mdazi $(OPTIONS)
+
+service-notif:
+	gcc service-notif.c -o service-notif $(OPTIONS)
 
 clean:
-	rm mdazi
+	rm mdazi service-notif
