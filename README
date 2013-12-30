@@ -25,9 +25,16 @@ Auteurs du projet : Jérôme Tonnellier, Karim Ouharzoune et Mamadou Barry.
 
   2 - Service de notifications
 
-  - Pour activer le programme (service) de notifications, entrez :
+  -Pour modifier le nom de la socket, aller dans service-notif.h et 
+  modifier "SOCKET_RDV"
 
-  ./service-notif <dazibao-1> <dazibao-2> ... <dazibao-n>
+  - Pour activer le programme serveur qui reçoit les notifications, entrez :
+
+  ./service-notif
+  
+  -Pour activer le programme client qui envoie les notifications
+
+  ./client-notif <chemin-complet/dazibao-1> ... <chemin-complet/dazibao-n>
 
 * Nettoyage du projet :
 
